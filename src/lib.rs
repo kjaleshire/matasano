@@ -34,7 +34,7 @@ pub fn challenge_3(hex_string: &[u8]) -> (u8, Vec<u8>) {
         //     Ok(next_decode_string) => println!("Current decoded string is {} with cipher {:x}", next_decode_string, potential_cipher_key),
         //     Err(_) => println!("Couldn't convert this one to UTF-8 using cipher {:x}", potential_cipher_key)
         // }
-        match frequency_score(next_decode[]) {
+        match english_text_score(next_decode[]) {
             score if score > current_score => {
                 current_score = score;
                 // println!("{:x} is new selected cipher character with score {}", potential_cipher_key, score);
@@ -45,7 +45,10 @@ pub fn challenge_3(hex_string: &[u8]) -> (u8, Vec<u8>) {
     })
 }
 
-fn frequency_score(decoded_string: &[u8]) -> f32 {
+
+// Quite hacky, but will do as a weekend solution. Something like Markov chains would be a better
+// solution. Ragel state machines anyone?
+fn english_text_score(decoded_string: &[u8]) -> f32 {
     decoded_string.iter().map(|score_char| {
         if score_char.is_ascii() {
             match score_char.to_ascii().to_uppercase().to_byte() {
