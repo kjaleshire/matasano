@@ -1,55 +1,61 @@
-extern crate challenge_set_1;
+#![feature(globs)]
+
+extern crate matasano;
+
+use matasano::set_1;
+use matasano::hamming_distance;
+
+mod challenge_set_1_answers;
+
+//mod set_1_answers
 
 #[test]
-fn challenge_test_1() {
-    let hex_string = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
-    let base64_string = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t";
+fn challenge_1_test() {
+    use challenge_set_1_answers::set_1::challenge_1::*;
 
-    assert_eq!(challenge_set_1::challenge_1(hex_string.as_bytes()), base64_string.to_string());
+    assert_eq!(set_1::hex_chars_to_values_base64(HEX_STRING.as_bytes()).as_slice(), BASE64_STRING);
 }
 
 #[test]
-fn challenge_test_2() {
-    let hex_string_1 = "1c0111001f010100061a024b53535009181c";
-    let hex_string_2 = "686974207468652062756c6c277320657965";
-    let result_string = "746865206b696420646f6e277420706c6179";
+fn challenge_2_test() {
+    use challenge_set_1_answers::set_1::challenge_2::*;
 
-    assert_eq!(challenge_set_1::challenge_2(hex_string_1, hex_string_2), result_string.to_string());
+    assert_eq!(set_1::string_xor(HEX_STRING_1, HEX_STRING_2).as_slice(), RESULT_STRING);
 }
 
 #[test]
-fn challenge_test_3() {
-    let hex_string = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+fn challenge_3_test() {
+    use challenge_set_1_answers::set_1::challenge_3::*;
 
-    let decoded_state = challenge_set_1::challenge_3(hex_string);
+    let decoded_state = set_1::break_single_char_cipher(HEX_STRING);
 
-    assert_eq!(decoded_state.string, "Cooking MC's like a pound of bacon".to_string());
-    assert_eq!(decoded_state.cipher, 0x58);
+    assert_eq!(decoded_state.string.as_slice(), ANSWER);
+    assert_eq!(decoded_state.cipher, CIPHER);
 }
 
 #[test]
-fn challenge_test_4() {
-    let decoded_state = challenge_set_1::challenge_4("/Users/kja/Desktop/4.txt");
+fn challenge_4_test() {
+    use challenge_set_1_answers::set_1::challenge_4::*;
 
-    assert_eq!(decoded_state.string, "Now that the party is jumping\n".to_string());
-    assert_eq!(decoded_state.cipher, 0x35);
-    assert_eq!(decoded_state.line, 170);
+    let decoded_state = set_1::break_multiline_file_cipher(FIXTURE_FILE);
+
+    assert_eq!(decoded_state.string.as_slice(), DECODED_STRING);
+    assert_eq!(decoded_state.cipher, CIPHER);
+    assert_eq!(decoded_state.line, LINE);
 }
 
 #[test]
-fn challenge_test_5() {
-    let start_string = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal";
-    let cipher = "ICE";
+fn challenge_5_test() {
+    use challenge_set_1_answers::set_1::challenge_5::*;
 
-    let encoded_string = challenge_set_1::challenge_5(start_string, cipher);
+    let encoded_string = set_1::encode_line_with_repeating_key(START_STRING, CIPHER);
 
-    assert_eq!(encoded_string, "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f".to_string());
+    assert_eq!(encoded_string.as_slice(), ENCODED_STRING);
 }
 
 #[test]
 fn hamming_distance_test() {
-    let string1 = "this is a test";
-    let string2 = "wokka wokka!!!";
+    use challenge_set_1_answers::set_1::challenge_6::*;
 
-    assert_eq!(37, challenge_set_1::hamming_bit_distance(string1, string2));
+    assert_eq!(HAMMING_DISTANCE, hamming_distance::bit_distance(HAMMING_TEST_STRING_1, HAMMING_TEST_STRING_2));
 }
