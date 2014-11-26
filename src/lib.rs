@@ -8,6 +8,7 @@ use serialize::base64::{Config,ToBase64,Standard};
 use std::vec::Vec;
 use std::io::fs::File;
 use std::io::BufferedReader;
+use std::collections::bitv;
 
 struct BitXorVec(Vec<u8>);
 
@@ -93,6 +94,12 @@ pub fn challenge_5(text_string: &str, cipher_key: &str) -> String {
     values_slice_to_hex_string(encoded_vec[])
 }
 
+pub fn hamming_bit_distance(string1: &str, string2: &str) -> uint {
+    string1.as_bytes().iter().zip(string2.as_bytes().iter()).map(|(&byte1, &byte2)|{
+        bitv::from_bytes(([byte1 ^ byte2])[]).iter().filter(|x| *x).count()
+    }).fold(0u, |acc, score| acc + score )
+}
+
 // Quite hacky, but will do as a weekend solution. Something like Markov chains would be a better
 // solution. Ragel state machines anyone?
 fn english_text_score(decoded_string: &str) -> uint {
@@ -112,7 +119,7 @@ fn english_text_score(decoded_string: &str) -> uint {
             '!' => 1,
             _ => 0
         }
-    }).fold(0, |acc, score| acc + score )
+    }).fold(0u, |acc, score| acc + score )
 }
 
 fn hex_slice_to_values_vec(hex_string: &[u8]) -> Vec<u8> {
