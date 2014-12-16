@@ -29,9 +29,13 @@ pub mod set_1 {
         pub static ENCODED_STRING: &'static str = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f";
     }
 
-    pub mod challenge_6 {
+    pub mod hamming_distance {
         pub static HAMMING_TEST_STRING_1: &'static str = "this is a test";
         pub static HAMMING_TEST_STRING_2: &'static str = "wokka wokka!!!";
         pub static HAMMING_DISTANCE: uint = 37;
+    }
+
+    pub mod challenge_6 {
+        pub static FIXTURE_FILE: &'static str = "fixtures/6.txt";
     }
 }

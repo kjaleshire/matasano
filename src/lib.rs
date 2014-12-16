@@ -1,4 +1,4 @@
-#![feature(slicing_syntax, if_let)]
+#![feature(slicing_syntax)]
 
 pub mod set_1;
 

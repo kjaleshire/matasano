@@ -7,8 +7,6 @@ use matasano::hamming_distance;
 
 mod challenge_set_1_answers;
 
-//mod set_1_answers
-
 #[test]
 fn challenge_1_test() {
     use challenge_set_1_answers::set_1::challenge_1::*;
@@ -48,14 +46,21 @@ fn challenge_4_test() {
 fn challenge_5_test() {
     use challenge_set_1_answers::set_1::challenge_5::*;
 
-    let encoded_string = set_1::encode_line_with_repeating_key(START_STRING, CIPHER);
+    let encoded_string = set_1::xor_repeating_key(START_STRING, CIPHER);
 
     assert_eq!(encoded_string.as_slice(), ENCODED_STRING);
 }
 
 #[test]
 fn hamming_distance_test() {
-    use challenge_set_1_answers::set_1::challenge_6::*;
+    use challenge_set_1_answers::set_1::hamming_distance::*;
 
     assert_eq!(HAMMING_DISTANCE, hamming_distance::bit_distance(HAMMING_TEST_STRING_1, HAMMING_TEST_STRING_2));
+}
+
+#[test]
+fn challenge_6_test() {
+    use challenge_set_1_answers::set_1::challenge_6::*;
+
+    set_1::challenge_6(FIXTURE_FILE);
 }
