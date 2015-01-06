@@ -1,4 +1,4 @@
-#![feature(slicing_syntax)]
+#![feature(slicing_syntax,associated_types)]
 
 pub mod set_1;
 

@@ -5,6 +5,7 @@ use std::vec::Vec;
 use std::io::fs::File;
 use std::io::BufferedReader;
 use std::ops::BitXor;
+use std::cmp::Ordering::Equal;
 
 use hex_util;
 use english_text_util;
@@ -19,10 +20,20 @@ pub struct DecodeState {
     pub string: String
 }
 
-impl BitXor<BitXorVec, Vec<u8>> for BitXorVec {
-    fn bitxor(&self, other: &BitXorVec) -> Vec<u8> {
-        let &BitXorVec(ref inner_self) = self;
-        let &BitXorVec(ref inner_other) = other;
+#[derive(Show)]
+pub struct KeyScore {
+    pub key_size: uint,
+    pub score: f32
+}
+
+impl Copy for KeyScore { }
+
+impl BitXor for BitXorVec {
+    type Output = Vec<u8>;
+
+    fn bitxor(self, other: BitXorVec) -> Vec<u8> {
+        let BitXorVec(ref inner_self) = self;
+        let BitXorVec(ref inner_other) = other;
 
         inner_self.iter().zip(inner_other.iter()).map(|(&item_1, &item_2)| item_1 ^ item_2 ).collect()
     }
@@ -114,7 +125,22 @@ pub fn challenge_6(file_path: &str) -> DecodeState {
         Err(vector) => panic!("Vector {} is not a valid UTF-8 string", vector)
     };
 
-    for key_size in range(2u, 40) {
+    // let mut keys_scores = range(2u, 80).map( |key_size| {
+    //     let slice_1 = contents[0..key_size];
+    //     let slice_2 = contents[key_size..key_size*2];
+    //     let slice_3 = contents[key_size*2..key_size*3];
+    //     let slice_4 = contents[key_size*3..key_size*4];
+    //     let distance_1 = hamming_distance::bit_distance(slice_1, slice_2) as f32 / key_size as f32;
+    //     let distance_2 = hamming_distance::bit_distance(slice_3, slice_4) as f32 / key_size as f32;
+    //     // println!("distance_1: {}. distance_2: {}. indexes: 0 {} {} {} {}", distance_1, distance_2, key_size, key_size*2, key_size*3, key_size*4);
+    //     // println!("slices: {} || {} && {} || {}", slice_1.as_bytes(), slice_2.as_bytes(), slice_3.as_bytes(), slice_4.as_bytes());
+    //     let average_distance = (distance_1 + distance_2) / 2.0;
+
+    //     println!("average distance: {}", average_distance);
+    //     KeyScore { key_size: key_size, score: average_distance }
+    // }).collect::<Vec<KeyScore>>();
+
+    let mut keys_scores = range(2u, 80).map( |key_size| {
         let n_slices = contents.len() / (key_size * 2);
         // println!("string length: {}. key_size: {}. n_slices: {}.", contents.len(), key_size, n_slices);
         let average_distance = range(0u, n_slices).map(|mut index| {
@@ -122,11 +148,15 @@ pub fn challenge_6(file_path: &str) -> DecodeState {
             // println!("indexes: {}..{}, {}..{}", index, index + key_size, index + key_size, index + (key_size * 2));
             let slice_1 = contents[index..index+key_size];
             let slice_2 = contents[index+key_size..index+(key_size*2)];
-            hamming_distance::bit_distance(slice_1, slice_2) / key_size
-        }).fold(0u, |accumulator, distance| accumulator + distance ) / n_slices;
+            hamming_distance::bit_distance(slice_1, slice_2) as f32 / key_size as f32
+        }).fold(0.0, |accumulator, distance| accumulator + distance ) / n_slices as f32;
+        // println!("distance: {}", average_distance);
+        KeyScore { key_size: key_size, score: average_distance }
+    }).collect::<Vec<KeyScore>>();
 
-        println!("distance: {}", average_distance);
-    }
+    keys_scores.sort_by( |first, second| first.score.partial_cmp(&second.score).unwrap_or(Equal) );
+
+    // println!("keys_scores: {}", keys_scores);
 
     DecodeState{ score: 0, cipher: 0, line: 0, string: String::new() }
 }
