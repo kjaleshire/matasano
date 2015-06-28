@@ -1,5 +1,3 @@
-#![feature(globs)]
-
 extern crate matasano;
 
 use matasano::set_1;
@@ -11,14 +9,14 @@ mod challenge_set_1_answers;
 fn challenge_1_test() {
     use challenge_set_1_answers::set_1::challenge_1::*;
 
-    assert_eq!(set_1::hex_chars_to_values_base64(HEX_STRING.as_bytes()).as_slice(), BASE64_STRING);
+    assert_eq!(&set_1::hex_decode_string_base64(HEX_STRING.as_bytes())[..], BASE64_STRING);
 }
 
 #[test]
 fn challenge_2_test() {
     use challenge_set_1_answers::set_1::challenge_2::*;
 
-    assert_eq!(set_1::string_xor(HEX_STRING_1, HEX_STRING_2).as_slice(), RESULT_STRING);
+    assert_eq!(&set_1::string_xor(HEX_STRING_1, HEX_STRING_2)[..], RESULT_STRING);
 }
 
 #[test]
@@ -27,7 +25,7 @@ fn challenge_3_test() {
 
     let decoded_state = set_1::break_single_char_cipher(HEX_STRING);
 
-    assert_eq!(decoded_state.string.as_slice(), ANSWER);
+    assert_eq!(&decoded_state.string[..], ANSWER);
     assert_eq!(decoded_state.cipher, CIPHER);
 }
 
@@ -37,7 +35,7 @@ fn challenge_4_test() {
 
     let decoded_state = set_1::break_multiline_file_cipher(FIXTURE_FILE);
 
-    assert_eq!(decoded_state.string.as_slice(), DECODED_STRING);
+    assert_eq!(&decoded_state.string[..], DECODED_STRING);
     assert_eq!(decoded_state.cipher, CIPHER);
     assert_eq!(decoded_state.line, LINE);
 }
@@ -48,7 +46,7 @@ fn challenge_5_test() {
 
     let encoded_string = set_1::xor_repeating_key(START_STRING, CIPHER);
 
-    assert_eq!(encoded_string.as_slice(), ENCODED_STRING);
+    assert_eq!(&encoded_string[..], ENCODED_STRING);
 }
 
 #[test]

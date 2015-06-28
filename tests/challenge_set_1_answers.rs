@@ -20,7 +20,7 @@ pub mod set_1 {
         pub static FIXTURE_FILE: &'static str = "fixtures/4.txt";
         pub static DECODED_STRING: &'static str = "Now that the party is jumping\n";
         pub static CIPHER: u8 = 0x35;
-        pub static LINE: uint = 170;
+        pub static LINE: usize = 170;
     }
 
     pub mod challenge_5 {
@@ -32,7 +32,7 @@ pub mod set_1 {
     pub mod hamming_distance {
         pub static HAMMING_TEST_STRING_1: &'static str = "this is a test";
         pub static HAMMING_TEST_STRING_2: &'static str = "wokka wokka!!!";
-        pub static HAMMING_DISTANCE: uint = 37;
+        pub static HAMMING_DISTANCE: usize = 37;
     }
 
     pub mod challenge_6 {

@@ -1,6 +1,6 @@
 // Quite hacky, but will do as a weekend solution. Something like Markov chains would be a better
 // solution. Ragel state machines anyone?
-pub fn character_score(text_string: &str) -> uint {
+pub fn character_score(text_string: &str) -> usize {
     text_string.chars().map(|score_char| {
         match score_char {
             x if x >= 'A' && x <= 'Z' => 1,
@@ -17,5 +17,5 @@ pub fn character_score(text_string: &str) -> uint {
             '!' => 1,
             _ => 0
         }
-    }).fold(0u, |accumulator, score| accumulator + score )
+    }).fold(0, |accumulator, score| accumulator + score )
 }

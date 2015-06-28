@@ -1,5 +1,12 @@
 [package]
-
 name = "matasano"
 version = "0.0.1"
 authors = [ "Kyle Aleshire <kjaleshire@gmail.com>" ]
+
+[lib]
+name = "matasano"
+path = "src/lib.rs"
+test = false
+
+[dependencies]
+rustc-serialize = "*"
