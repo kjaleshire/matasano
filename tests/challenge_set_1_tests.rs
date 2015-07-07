@@ -9,7 +9,7 @@ mod challenge_set_1_answers;
 fn challenge_1_test() {
     use challenge_set_1_answers::set_1::challenge_1::*;
 
-    assert_eq!(&set_1::hex_decode_string_base64(HEX_STRING.as_bytes())[..], BASE64_STRING);
+    assert_eq!(&set_1::hex_decode_string_base64(HEX_STRING)[..], BASE64_STRING);
 }
 
 #[test]
