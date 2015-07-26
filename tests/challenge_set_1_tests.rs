@@ -73,7 +73,7 @@ fn challenge_6_test() {
     use challenge_set_1_answers::set_1::challenge_6::*;
 
     let cipher_bytes = file_util::dump_bytes(FILE_PATH).unwrap()[..].from_base64().unwrap();
-    let key = set_1::challenge_6(&cipher_bytes[..]);
+    let key = set_1::break_repeating_key_xor_string(&cipher_bytes[..]);
 
     assert_eq!(&key[..], KEY.as_bytes());
 }

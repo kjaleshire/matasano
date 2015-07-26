@@ -20,7 +20,7 @@ pub mod set_1 {
         pub static FILE_PATH: &'static str = "fixtures/4.txt";
         pub static PLAINTEXT: &'static str = "Now that the party is jumping\n";
         pub static KEY: u8 = 0x35;
-        pub static LINE_NUMBER: usize = 170;
+        pub static LINE_NUMBER: usize = 171;
     }
 
     pub mod challenge_5 {

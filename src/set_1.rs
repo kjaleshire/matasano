@@ -62,7 +62,7 @@ pub fn break_single_line_byte_key(encoded_bytes: &[u8]) -> ByteKeyState {
                     false => current_state
                 }
             },
-            _ => current_state
+            Err(_) => current_state
         }
     })
 }
@@ -76,7 +76,7 @@ pub fn break_multiline_file_byte_key(file_path: &str) -> ByteKeyState {
         let mut trial_state = break_single_line_byte_key(&next_line.unwrap().from_hex().unwrap()[..]);
         match trial_state.score > current_state.score {
             true => {
-                trial_state.line = next_line_number;
+                trial_state.line = next_line_number + 1;
                 trial_state
             },
             false => current_state
@@ -92,31 +92,31 @@ pub fn repeating_key_xor(text: &str, key: &str) -> String {
 }
 
 // Challenge 6
-pub fn challenge_6(cipher_bytes: &[u8]) -> Vec<u8> {
+pub fn break_repeating_key_xor_string(cipher_bytes: &[u8]) -> Vec<u8> {
     let initial_state = KeyState{distance: 9000.0, size: 0};
     let min_key_size = 2;
     let max_key_size = 64;
 
-    let size = (min_key_size..max_key_size).fold(initial_state, |current_state, key_size| {
-        let passes = (cipher_bytes.len() / key_size) - 1;
+    let key_size = (min_key_size..max_key_size).fold(initial_state, |current_state, trial_size| {
+        let passes = (cipher_bytes.len() / trial_size) - 1;
 
         let normalized_distance = (0..passes).map(|index| {
-            let slice_1 = &cipher_bytes[key_size*index..key_size*(index+1)];
-            let slice_2 = &cipher_bytes[key_size*(index+1)..key_size*(index+2)];
+            let slice_1 = &cipher_bytes[trial_size*index..trial_size*(index+1)];
+            let slice_2 = &cipher_bytes[trial_size*(index+1)..trial_size*(index+2)];
             hamming_util::bit_distance(slice_1, slice_2)
-        }).fold(0, |accumulator, distance| accumulator + distance) as f32 / (passes * key_size) as f32;
+        }).fold(0, |a, s| a + s) as f32 / (passes * trial_size) as f32;
 
         match normalized_distance < current_state.distance {
-            true => KeyState{ size: key_size, distance: normalized_distance },
+            true => KeyState{ size: trial_size, distance: normalized_distance },
             false => current_state
         }
     }).size;
 
-    let number_of_blocks = cipher_bytes.len() / size;
+    let number_of_blocks = cipher_bytes.len() / key_size;
 
-    (0..size).map(|size_index|{
+    (0..key_size).map(|size_index|{
         let block: Vec<u8> = (0..number_of_blocks).map(|block_index|{
-            cipher_bytes[block_index * size + size_index]
+            cipher_bytes[block_index * key_size + size_index]
         }).collect();
         break_single_line_byte_key(&block[..]).key
     }).collect()

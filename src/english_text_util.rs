@@ -37,7 +37,7 @@ fn score_chars(text_string: &str) -> f32 {
             '-' | '\'' | '\n' | '/' | ',' | '.' | '?' | '!' => 0.1,
             _ => 0.0
         }
-    }).fold(0.0, |accumulator, score| accumulator + score )
+    }).fold(0.0, |a, s| a + s )
 }
 
 fn score_digraphs(text_string: &str) -> f32 {
@@ -65,5 +65,5 @@ fn score_digraphs(text_string: &str) -> f32 {
     		b"NG" => 1.05 * 4.0,
             _ => 0.0
 		}
-	}).fold(0.0, |accumulator, score| accumulator + score )
+	}).fold(0.0, |a, s| a + s )
 }
