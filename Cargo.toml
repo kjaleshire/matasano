@@ -10,3 +10,4 @@ test = false
 
 [dependencies]
 rustc-serialize = "*"
+rust-crypto = "^0.2"

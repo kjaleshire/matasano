@@ -39,4 +39,15 @@ pub mod set_1 {
         pub static FILE_PATH: &'static str = "fixtures/6.txt";
         pub static KEY: &'static str = "Terminator X: Bring the noise";
     }
+
+    pub mod challenge_7 {
+        pub static FILE_PATH: &'static str = "fixtures/7.txt";
+        pub static KEY: &'static str = "YELLOW SUBMARINE";
+        pub static DECODED_FIRST_LINE: &'static str = "I'm back and I'm ringin' the bell";
+    }
+
+    pub mod challenge_8 {
+        pub static FILE_PATH: &'static str = "fixtures/8.txt";
+        pub static LINE_NUMBER: usize = 133;
+    }
 }
