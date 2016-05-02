@@ -1,9 +1,10 @@
-use crypto::{aes, blockmodes, buffer};
+use crypto::aessafe;
+use crypto::symmetriccipher::BlockDecryptor;
 
 use serialize::base64::{Config, Newline, Standard, ToBase64};
 use serialize::hex::{FromHex, ToHex};
 
-use std::vec::Vec;
+use std::str;
 
 use english_text_util;
 use error::MatasanoError;
@@ -41,38 +42,49 @@ pub fn hex_decode_base64(hex_string: &str) -> Result<String, MatasanoError> {
 
 // Challenge 2
 pub fn string_xor(hex_string_1: &str, hex_string_2: &str) -> Result<String, MatasanoError> {
-    let string1 = hex_string_1.from_hex()?;
-    let string2 = hex_string_2.from_hex()?;
+    let byte_vec_1 = hex_string_1.from_hex()?;
+    let byte_vec_2 = hex_string_2.from_hex()?;
 
-    if string1.len() != string2.len() {
+    if byte_vec_1.len() != byte_vec_2.len() {
         return Err(MatasanoError::Other("Hex strings must be of equal length"));
     }
 
-    let mut result = Vec::with_capacity(string1.len());
-
-    for (&byte1, &byte2) in string1.iter().zip(string2.iter()) {
-        result.push(byte1 ^ byte2);
-    }
+    let result: Vec<u8> = byte_vec_1.iter().zip(byte_vec_2).map(|(byte_1, byte_2)| {
+        byte_1 ^ byte_2
+    }).collect();
 
     Ok(result[..].to_hex())
 }
 
 // Challenge 3
-pub fn break_single_line_byte_key(encoded_bytes: &[u8]) -> ByteKeyState {
-    let initial_state = ByteKeyState{ score: 0.0, key: 0x0, line: 0, string: String::with_capacity(0) };
+pub fn break_single_line_byte_key(cipher_bytes: &[u8]) -> ByteKeyState {
+    let initial_state = ByteKeyState{
+                            score: 0.0,
+                            key: 0x0,
+                            line: 0,
+                            string: String::with_capacity(0)
+                        };
 
-    (0u8..255).fold(initial_state, |current_state, trial_key| {
-        let mut decoded_vec = Vec::with_capacity(encoded_bytes.len());
+    let mut decoded_vec = Vec::with_capacity(cipher_bytes.len());
 
-        for byte in encoded_bytes.iter() {
-            decoded_vec.push(byte ^ trial_key);
+    (0u8..255).fold(initial_state, |current_state, trial_key_byte| {
+        decoded_vec.clear();
+
+        for cipher_byte in cipher_bytes {
+            decoded_vec.push(cipher_byte ^ trial_key_byte);
         }
 
-        match String::from_utf8(decoded_vec) {
-            Ok(utf8_string) => {
-                let score = english_text_util::string_score(&utf8_string[..]);
+        match str::from_utf8(&decoded_vec) {
+            Ok(str_slice) => {
+                let score = english_text_util::string_score(str_slice);
+
                 match score > current_state.score {
-                    true => ByteKeyState{ score: score, key: trial_key, line: 0, string: utf8_string },
+                    true => ByteKeyState{
+                        score: score,
+                        key: trial_key_byte,
+                        line: 0,
+                        string: String::from(str_slice)
+                    },
                     false => current_state
                 }
             },
@@ -84,34 +96,37 @@ pub fn break_single_line_byte_key(encoded_bytes: &[u8]) -> ByteKeyState {
 // Challenge 4
 pub fn break_multiline_file_byte_key(file_path: &str) -> Result<ByteKeyState, MatasanoError> {
     let file_lines = file_util::lines_iterator(file_path)?;
-    let initial_state = ByteKeyState{ score: 0.0, key: 0x0, line: 0, string: String::with_capacity(0) };
+    let initial_state = ByteKeyState{
+                            score: 0.0,
+                            key: 0x0,
+                            line: 0,
+                            string: String::with_capacity(0)
+                        };
 
-    let result = file_lines.enumerate().fold(initial_state, |current_state, (next_line_number, next_line)| {
-        if let Ok(line) = next_line {
-            let mut trial_state = break_single_line_byte_key(&line.from_hex().unwrap()[..]);
-            if trial_state.score > current_state.score {
+    file_lines.enumerate().fold(Ok(initial_state), |state, (next_line_number, next_line)| {
+        let current_state = state?;
+        let line = next_line?.from_hex()?;
+        let mut trial_state = break_single_line_byte_key(&line);
+
+        match trial_state.score > current_state.score {
+            true => {
                 trial_state.line = next_line_number + 1;
-                return trial_state;
+                Ok(trial_state)
+            },
+            false => {
+                Ok(current_state)
             }
         }
-        current_state
-    });
-
-    Ok(result)
+    })
 }
 
 // Challenge 5
-pub fn repeating_key_xor(text: &str, key: &str) -> String {
-    let mut encoded_bytes = Vec::with_capacity(text.len());
+pub fn repeating_key_xor(plain_text: &[u8], key: &[u8]) -> String {
+    let repeating_key = key.iter().cycle();
 
-    let text_iter = text.as_bytes().iter();
-    let key_cycle = key.as_bytes().iter().cycle();
-
-    for (byte, byte_key) in text_iter.zip(key_cycle) {
-        encoded_bytes.push(byte ^ byte_key);
-    }
-
-    encoded_bytes[..].to_hex()
+    repeating_key.zip(plain_text).map(|(key_byte, plain_text_byte)| {
+        key_byte ^ plain_text_byte
+    }).collect::<Vec<u8>>().to_hex()
 }
 
 // Challenge 6
@@ -123,13 +138,11 @@ pub fn break_repeating_key_xor_string(cipher_bytes: &[u8]) -> Vec<u8> {
     let key_size = (min_key_size..max_key_size).fold(initial_state, |current_state, trial_size| {
         let passes = (cipher_bytes.len() / trial_size) - 1;
 
-        let mut sum_distance = 0;
-
-        for index in 0..passes {
+        let sum_distance = (0..passes).map(|index| {
             let slice_1 = &cipher_bytes[trial_size*index..trial_size*(index+1)];
             let slice_2 = &cipher_bytes[trial_size*(index+1)..trial_size*(index+2)];
-            sum_distance += hamming_util::bit_distance(slice_1, slice_2);
-        }
+            hamming_util::bit_distance(slice_1, slice_2)
+        }).fold(0, |a, s| a + s);
 
         let normalized_distance = sum_distance as f32 / (passes * trial_size) as f32;
 
@@ -141,36 +154,33 @@ pub fn break_repeating_key_xor_string(cipher_bytes: &[u8]) -> Vec<u8> {
 
     let number_of_blocks = cipher_bytes.len() / key_size;
 
-    let mut full_key = Vec::with_capacity(key_size);
+    let mut block = Vec::with_capacity(number_of_blocks);
 
-    for size_index in 0..key_size {
-        let mut block = Vec::with_capacity(number_of_blocks);
+    (0..key_size).map(|size_index| {
+        block.clear();
 
         for block_index in 0..number_of_blocks {
             block.push(cipher_bytes[block_index * key_size + size_index]);
         }
 
-        full_key.push(break_single_line_byte_key(&block[..]).key);
-    }
-
-    full_key
+        break_single_line_byte_key(&block).key
+    }).collect()
 }
 
 // Challenge 7
-pub fn decrypt_aes_ecb_text(cipher_bytes: &[u8], key: &[u8]) -> Result<Vec<u8>, MatasanoError> {
-    let mut decoded_vec = vec![0; cipher_bytes.len()];
+pub fn decrypt_aes_ecb_text(cipher_bytes: &[u8], key: &[u8]) -> Vec<u8> {
+    let decryptor = aessafe::AesSafe128Decryptor::new(key);
 
-    {
-        let mut decryptor = aes::ecb_decryptor(aes::KeySize::KeySize128, key, blockmodes::PkcsPadding);
+    let mut decoded_vec = Vec::with_capacity(cipher_bytes.len());
+    let mut write_buffer = vec![0; decryptor.block_size()];
 
-        let mut write_buffer = buffer::RefWriteBuffer::new(&mut decoded_vec[..]);
+    for cipher_block in cipher_bytes.chunks(decryptor.block_size()) {
+        decryptor.decrypt_block(&cipher_block, &mut write_buffer);
 
-        let mut read_buffer = buffer::RefReadBuffer::new(cipher_bytes);
-
-        decryptor.decrypt(&mut read_buffer, &mut write_buffer, true)?;
+        decoded_vec.extend_from_slice(&write_buffer);
     }
 
-    Ok(decoded_vec)
+    decoded_vec
 }
 
 // Challenge 8
@@ -178,16 +188,21 @@ pub fn detect_ecb_file_line(file_path: &str) -> Result<usize, MatasanoError> {
     let file_lines = file_util::lines_iterator(file_path)?;
 
     for (line_number, line) in file_lines.enumerate() {
-        let line_as_bytes = line?.from_hex()?;
+        let line_bytes = line?.from_hex()?;
 
-        for (index, chunk) in line_as_bytes[..].chunks(16).enumerate() {
-            for other_chunk in line_as_bytes[(index + 1) * 16..].chunks(16) {
-                if chunk == other_chunk {
-                    return Ok(line_number + 1);
-                }
-            }
+        if is_ecb_encrypted(&line_bytes) {
+            return Ok(line_number + 1);
         }
     };
 
     Err(MatasanoError::Other("No match found in any lines"))
+}
+
+pub fn is_ecb_encrypted(byte_slice: &[u8]) -> bool {
+    for (index, chunk) in byte_slice[..].chunks(16).enumerate() {
+        if byte_slice[..].chunks(16).skip(index + 1).any(|other| chunk == other) {
+            return true;
+        }
+    }
+    false
 }

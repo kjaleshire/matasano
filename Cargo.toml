@@ -11,3 +11,4 @@ test = false
 [dependencies]
 rustc-serialize = "*"
 rust-crypto = "^0.2"
+rand = "0.3"

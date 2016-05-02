@@ -1,5 +1,5 @@
-pub fn bit_distance(bytes1: &[u8], bytes2: &[u8]) -> usize {
-    bytes1.iter().zip(bytes2.iter()).map(|(&byte1, &byte2)| {
-        (0..8).map(|bit_index| ((byte1 ^ byte2) >> bit_index) & 1 ).filter(|&x| x == 1).count()
-    }).fold(0, |accumulator, score| accumulator + score )
+pub fn bit_distance(byte_slice_1: &[u8], byte_slice_2: &[u8]) -> usize {
+    byte_slice_1.iter().zip(byte_slice_2).map(|(&byte_1, &byte_2)| {
+        (byte_1 ^ byte_2).count_ones() as usize
+    }).fold(0, |a, s| a + s )
 }
