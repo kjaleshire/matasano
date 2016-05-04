@@ -1,10 +1,10 @@
 #![feature(question_mark)]
 
-pub mod english_text_util;
-pub mod error;
-pub mod file_util;
-pub mod hamming_util;
-pub mod encryption_oracle;
+pub mod aes;
+pub mod analyzer;
+pub mod decryptor;
+pub mod oracle;
+pub mod utility;
 pub mod set_1;
 pub mod set_2;
 
