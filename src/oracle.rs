@@ -2,24 +2,21 @@ use rand;
 use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 
-use std::marker::PhantomData;
-
 use serialize::base64::FromBase64;
 
 use aes;
 use analyzer::Mode;
 use utility::error::MatasanoError;
 
-pub struct Oracle<'a, T: 'a> {
+pub struct Oracle<'a, T: 'a + ?Sized> {
     pub append_str: Option<&'a T>,
     pub block_size: usize,
     pub last_key: Option<Vec<u8>>,
     pub last_mode: Mode,
     pub rng: rand::ThreadRng,
-    _marker: PhantomData<&'a T>,
 }
 
-impl<'b, str> Oracle<'b, str> {
+impl<'b> Oracle<'b, &'b str> {
     pub fn new() -> Self {
         Oracle{
             append_str: None,
@@ -27,18 +24,6 @@ impl<'b, str> Oracle<'b, str> {
             last_key: None,
             last_mode: Mode::None,
             rng: rand::thread_rng(),
-            _marker: PhantomData{},
-        }
-    }
-
-    pub fn new_with_append_str(append_str: &'b str) -> Self {
-        Oracle{
-            append_str: Some(append_str),
-            block_size: 16,
-            last_key: None,
-            last_mode: Mode::None,
-            rng: rand::thread_rng(),
-            _marker: PhantomData{},
         }
     }
 
@@ -84,7 +69,7 @@ impl<'b, str> Oracle<'b, str> {
 
     pub fn randomly_append_and_encrypt_text<'a>(&mut self, plain_text: &'a [u8]) -> Result<Vec<u8>, MatasanoError> {
         let append_vec = match self.append_str {
-            Some(&thing) => thing.from_base64()?,
+            Some(thing) => thing.from_base64()?,
             None => return Err(MatasanoError::Other("Must set the append string before using this method"))
         };
 

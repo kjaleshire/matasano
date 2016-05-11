@@ -63,7 +63,8 @@ pub fn oracle_encrypt_and_guess() -> (Mode, Mode) {
 
 // Challenge 12
 pub fn detect_oracle_block_size<'a>(append_str: &'a str, try_up_to: usize) -> Result<usize, MatasanoError> {
-    let mut oracle = Oracle::new_with_append_str(&append_str);
+    let mut oracle = Oracle::new();
+    oracle.append_str = Some(&append_str);
 
     let trial_block = vec![0x65 as u8; try_up_to * 2];
 
@@ -79,7 +80,8 @@ pub fn detect_oracle_block_size<'a>(append_str: &'a str, try_up_to: usize) -> Re
 }
 
 pub fn detect_oracle_mode<'a>(append_str: &'a str) -> Result<(analyzer::Mode, analyzer::Mode), MatasanoError> {
-    let mut oracle = Oracle::new_with_append_str(&append_str);
+    let mut oracle = Oracle::new();
+    oracle.append_str = Some(&append_str);
 
     let trial_block = vec![0x65 as u8; 128];
 
@@ -89,10 +91,9 @@ pub fn detect_oracle_mode<'a>(append_str: &'a str) -> Result<(analyzer::Mode, an
 }
 
 pub fn decrypt_append_str<'a>(append_str: &'a str) -> Result<String, MatasanoError> {
-    let mut oracle = Oracle::new_with_append_str(&append_str);
-    let mut dictionary = HashMap::new();
-
+    let mut oracle = Oracle::new();
     oracle.append_str = Some(&append_str);
+    let mut dictionary = HashMap::new();
 
     let block_size = detect_oracle_block_size(append_str, 32)?;
 
@@ -126,7 +127,7 @@ pub fn decrypt_append_str<'a>(append_str: &'a str) -> Result<String, MatasanoErr
     Ok(String::from_utf8(decoded_vec.split_off(block_size - 1))?)
 }
 
-fn generate_dictionary(dictionary: &mut HashMap<Vec<u8>, Vec<u8>>, prefix_block: &[u8], oracle: &mut Oracle<&str>) -> Result<(), MatasanoError> {
+fn generate_dictionary<'a>(dictionary: &mut HashMap<Vec<u8>, Vec<u8>>, prefix_block: &[u8], oracle: &mut Oracle<'a, &'a str>) -> Result<(), MatasanoError> {
     let mut trial_vec = Vec::with_capacity(prefix_block.len() + 1);
 
     trial_vec.extend_from_slice(prefix_block);
