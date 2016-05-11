@@ -69,7 +69,7 @@ pub fn decrypt_cbc_text<T>(cipher_bytes: &[u8], iv: &[u8], decryptor: &T) -> Vec
     decoded_vec
 }
 
-pub fn encrypt_cbc_text<T>(plain_text: &[u8], iv: &[u8], encryptor: &T) -> Vec<u8> where T: BlockEncryptor{
+pub fn encrypt_cbc_text<T>(plain_text: &[u8], iv: &[u8], encryptor: &T) -> Vec<u8> where T: BlockEncryptor {
     let mut encoded_vec = Vec::with_capacity(plain_text.len());
     let mut write_buffer = vec![0; encryptor.block_size()];
 
@@ -92,8 +92,10 @@ pub fn pkcs_pad_vec(byte_vec: &mut Vec<u8>, block_size: usize) -> usize {
     let padded_len = padded_len(byte_vec.len(), block_size);
     let padding_size = padded_len - byte_vec.len();
 
+    assert!(padding_size < block_size, "padding size must be less than block size");
+
     for _ in 0..padding_size {
-        byte_vec.push(0x04);
+        byte_vec.push(padding_size as u8);
     }
 
     padding_size

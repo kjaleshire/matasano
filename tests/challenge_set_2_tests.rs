@@ -57,3 +57,30 @@ fn challenge_11_test() {
         assert_eq!(detected_mode, last_mode);
     }
 }
+
+#[test]
+fn detect_block_size() {
+    use challenge_set_2_answers::challenge_12::*;
+
+    let block_size = set_2::detect_oracle_block_size(APPEND_STR, 32).expect("Challenge 12: could not detect block size");
+
+    assert_eq!(block_size, 16);
+}
+
+#[test]
+fn detect_using_ecb() {
+    use challenge_set_2_answers::challenge_12::*;
+
+    let (mode, expected_mode) = set_2::detect_oracle_mode(APPEND_STR).expect("Challenge 12: could not detect mode");
+
+    assert_eq!(mode, expected_mode);
+}
+
+#[test]
+fn challenge_12_test() {
+    use challenge_set_2_answers::challenge_12::*;
+
+    let decodec_str = set_2::decrypt_append_str(APPEND_STR).expect("Challenge 12: could not decrypt appended string");
+
+    assert_eq!(EXPECTED_STR, &decodec_str[..])
+}

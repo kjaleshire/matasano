@@ -2,26 +2,43 @@ use rand;
 use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 
+use std::marker::PhantomData;
+
 use serialize::base64::FromBase64;
 
 use aes;
 use analyzer::Mode;
 use utility::error::MatasanoError;
 
-pub struct Oracle {
+pub struct Oracle<'a, T: 'a> {
+    pub append_str: Option<&'a T>,
     pub block_size: usize,
-    pub last_key: Vec<u8>,
+    pub last_key: Option<Vec<u8>>,
     pub last_mode: Mode,
     pub rng: rand::ThreadRng,
+    _marker: PhantomData<&'a T>,
 }
 
-impl Oracle {
+impl<'b, str> Oracle<'b, str> {
     pub fn new() -> Self {
         Oracle{
+            append_str: None,
             block_size: 16,
-            last_key: Vec::with_capacity(0),
+            last_key: None,
             last_mode: Mode::None,
             rng: rand::thread_rng(),
+            _marker: PhantomData{},
+        }
+    }
+
+    pub fn new_with_append_str(append_str: &'b str) -> Self {
+        Oracle{
+            append_str: Some(append_str),
+            block_size: 16,
+            last_key: None,
+            last_mode: Mode::None,
+            rng: rand::thread_rng(),
+            _marker: PhantomData{},
         }
     }
 
@@ -65,8 +82,11 @@ impl Oracle {
         }
     }
 
-    pub fn randomly_appended_encrypted_text(&mut self, plain_text: &[u8]) -> Result<Vec<u8>, MatasanoError> {
-        let append_vec = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK".from_base64()?;
+    pub fn randomly_append_and_encrypt_text<'a>(&mut self, plain_text: &'a [u8]) -> Result<Vec<u8>, MatasanoError> {
+        let append_vec = match self.append_str {
+            Some(&thing) => thing.from_base64()?,
+            None => return Err(MatasanoError::Other("Must set the append string before using this method"))
+        };
 
         let vec_size = aes::padded_len(plain_text.len() + append_vec.len(), self.block_size);
 
@@ -76,8 +96,18 @@ impl Oracle {
         mangled_text.extend_from_slice(&append_vec);
         let _ = aes::pkcs_pad_vec(&mut mangled_text, self.block_size);
 
-        self.last_key = self.generate_random_aes_key();
         self.last_mode = Mode::Ecb;
-        Ok(aes::encrypt_ecb_128_text(&mangled_text, &self.last_key))
+
+        match self.last_key {
+            Some(ref key) => {
+                Ok(aes::encrypt_ecb_128_text(&mangled_text, key))
+            },
+            None => {
+                let key = self.generate_random_aes_key();
+                let encoded_vec = aes::encrypt_ecb_128_text(&mangled_text, &key);
+                self.last_key = Some(key);
+                Ok(encoded_vec)
+            }
+        }
     }
 }
