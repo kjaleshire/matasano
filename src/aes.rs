@@ -88,7 +88,7 @@ pub fn encrypt_cbc_text<T>(plain_text: &[u8], iv: &[u8], encryptor: &T) -> Vec<u
     encoded_vec
 }
 
-pub fn pkcs_pad_vec(byte_vec: &mut Vec<u8>, block_size: usize) -> usize {
+pub fn pkcs7_pad_vec(byte_vec: &mut Vec<u8>, block_size: usize) -> usize {
     let padded_len = padded_len(byte_vec.len(), block_size);
     let padding_size = padded_len - byte_vec.len();
 

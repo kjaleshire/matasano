@@ -8,18 +8,18 @@ use aes;
 use analyzer::Mode;
 use utility::error::MatasanoError;
 
-pub struct Oracle<'a, T: 'a + ?Sized> {
-    pub append_str: Option<&'a T>,
+pub struct Oracle {
+    pub append_vec: Option<Vec<u8>>,
     pub block_size: usize,
     pub last_key: Option<Vec<u8>>,
     pub last_mode: Mode,
     pub rng: rand::ThreadRng,
 }
 
-impl<'b> Oracle<'b, &'b str> {
+impl Oracle {
     pub fn new() -> Self {
         Oracle{
-            append_str: None,
+            append_vec: None,
             block_size: 16,
             last_key: None,
             last_mode: Mode::None,
@@ -27,6 +27,15 @@ impl<'b> Oracle<'b, &'b str> {
         }
     }
 
+    pub fn new_with_base64_append_str(append_str: &str)  -> Result<Self, MatasanoError> {
+        Ok(Oracle{
+            append_vec: Some(append_str.from_base64()?),
+            block_size: 16,
+            last_key: None,
+            last_mode: Mode::None,
+            rng: rand::thread_rng(),
+        })
+    }
     pub fn generate_random_aes_key(&mut self) -> Vec<u8> {
         (0..self.block_size).map(|_| self.rng.gen()).collect()
     }
@@ -52,7 +61,7 @@ impl<'b> Oracle<'b, &'b str> {
             mangled_text.push(self.rng.gen());
         }
 
-        let _ = aes::pkcs_pad_vec(&mut mangled_text, self.block_size);
+        let _ = aes::pkcs7_pad_vec(&mut mangled_text, self.block_size);
 
         match self.rng.gen() {
             true => {
@@ -68,18 +77,23 @@ impl<'b> Oracle<'b, &'b str> {
     }
 
     pub fn randomly_append_and_encrypt_text<'a>(&mut self, plain_text: &'a [u8]) -> Result<Vec<u8>, MatasanoError> {
-        let append_vec = match self.append_str {
-            Some(thing) => thing.from_base64()?,
-            None => return Err(MatasanoError::Other("Must set the append string before using this method"))
-        };
+        let mut mangled_text: Vec<u8>;
 
-        let vec_size = aes::padded_len(plain_text.len() + append_vec.len(), self.block_size);
+        {
+            let append_vec = match self.append_vec {
+                Some(ref vec) => vec,
+                None => return Err(MatasanoError::Other("Must set the append vec before using this method"))
+            };
 
-        let mut mangled_text = Vec::with_capacity(vec_size);
+            let vec_size = aes::padded_len(plain_text.len() + append_vec.len(), self.block_size);
 
-        mangled_text.extend_from_slice(&plain_text);
-        mangled_text.extend_from_slice(&append_vec);
-        let _ = aes::pkcs_pad_vec(&mut mangled_text, self.block_size);
+            mangled_text = Vec::with_capacity(vec_size);
+
+            mangled_text.extend_from_slice(&plain_text);
+            mangled_text.extend_from_slice(&append_vec);
+        }
+
+        let _ = aes::pkcs7_pad_vec(&mut mangled_text, self.block_size);
 
         self.last_mode = Mode::Ecb;
 

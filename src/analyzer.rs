@@ -32,3 +32,18 @@ pub fn detect_encryption_mode(byte_slice: &[u8], block_size: usize) -> Mode {
     }
     Mode::Cbc
 }
+
+pub fn detect_oracle_block_size<F>(oracle_fn: &mut F, try_up_to: usize) -> Result<usize, MatasanoError>
+    where F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError> {
+    let trial_block = vec![0x65 as u8; try_up_to * 2];
+
+    for trial_block_size in 1..try_up_to + 1 {
+        let encoded_vec = oracle_fn(&trial_block[..trial_block_size * 2])?;
+
+        if encoded_vec[..trial_block_size] == encoded_vec[trial_block_size..trial_block_size * 2] {
+            return Ok(trial_block_size)
+        }
+    }
+
+    Err(MatasanoError::Other("block size not detected"))
+}

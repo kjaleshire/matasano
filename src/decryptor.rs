@@ -1,8 +1,10 @@
 use serialize::hex::FromHex;
 
+use std::collections::HashMap;
 use std::io::BufRead;
 use std::str;
 
+use analyzer;
 use utility::english;
 use utility::error::MatasanoError;
 use utility::hamming;
@@ -110,4 +112,60 @@ pub fn break_repeating_key_xor(cipher_bytes: &[u8]) -> Vec<u8> {
 
         break_single_byte_key(&block).key
     }).collect()
+}
+
+pub fn break_oracle_append_fn<F>(mut oracle_fn: &mut F) -> Result<Vec<u8>, MatasanoError>
+    where F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError> {
+    let mut dictionary = HashMap::new();
+
+    let block_size = analyzer::detect_oracle_block_size(&mut oracle_fn, 32)?;
+    let max_decoded_size = oracle_fn(&[0; 0])?.len();
+
+    let mut decoded_vec = Vec::with_capacity(max_decoded_size + block_size);
+    decoded_vec.resize(block_size - 1, 0x65);
+
+    'block_iter: for block_index in 0..(max_decoded_size / block_size) {
+        for byte_index in 0..block_size {
+            let block_base = block_index * block_size;
+
+            generate_dictionary(&mut |block| oracle_fn(block),
+                                &mut dictionary,
+                                &decoded_vec[block_base + byte_index..])?;
+
+            let encoded_vec = oracle_fn(&decoded_vec[..block_size - byte_index - 1])?;
+
+            match dictionary.get(&encoded_vec[block_base..block_base + block_size]) {
+                Some(value) => {
+                    match value.last() {
+                        Some(&1) => break 'block_iter,
+                        Some(&last_byte) => decoded_vec.push(last_byte),
+                        None => return Err(MatasanoError::Other("How do we have an empty vec here"))
+                    }
+                },
+                None => return Err(MatasanoError::Other("No match for key"))
+            }
+        }
+    }
+
+    Ok(decoded_vec.split_off(block_size - 1))
+}
+
+fn generate_dictionary<'a, F>(oracle_fn: &mut F, dictionary: &mut HashMap<Vec<u8>, Vec<u8>>, prefix_block: &[u8]) -> Result<(), MatasanoError>
+    where F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError> {
+    let mut trial_vec = Vec::with_capacity(prefix_block.len() + 1);
+
+    trial_vec.extend_from_slice(prefix_block);
+
+    dictionary.clear();
+
+    for index in 0..u8::max_value() {
+        trial_vec.push(index);
+        let encoded_vec = oracle_fn(&trial_vec)?;
+
+        dictionary.insert(encoded_vec[..prefix_block.len() + 1].to_vec(), trial_vec.clone());
+
+        let _ = trial_vec.pop();
+    }
+
+    Ok(())
 }
