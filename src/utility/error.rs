@@ -10,11 +10,10 @@ use std::{io, str, string};
 pub enum MatasanoError {
     Crypto(symmetriccipher::SymmetricCipherError),
     Io(io::Error),
-    FromBase64(base64::FromBase64Error),
-    FromHex(hex::FromHexError),
-    FromUtf8(string::FromUtf8Error),
+    Base64(base64::FromBase64Error),
+    Hex(hex::FromHexError),
+    Utf8(string::FromUtf8Error),
     Other(&'static str),
-    StrUtf8(str::Utf8Error),
 }
 
 impl Display for MatasanoError {
@@ -22,11 +21,10 @@ impl Display for MatasanoError {
         match *self {
             MatasanoError::Crypto(_) => write!(formatter, "Crypto error: {}", self.description()),
             MatasanoError::Io(ref err) => write!(formatter, "IO Error: {}", err),
-            MatasanoError::FromBase64(ref err) => write!(formatter, "FromBase64 error: {}", err),
-            MatasanoError::FromHex(ref err) => write!(formatter, "FromHexError error: {}", err),
-            MatasanoError::FromUtf8(ref err) => write!(formatter, "FromUtf8Error error: {}", err),
+            MatasanoError::Base64(ref err) => write!(formatter, "Base64 error: {}", err),
+            MatasanoError::Hex(ref err) => write!(formatter, "HexError error: {}", err),
+            MatasanoError::Utf8(ref err) => write!(formatter, "Utf8Error error: {}", err),
             MatasanoError::Other(ref err) => write!(formatter, "Other error: {}", err),
-            MatasanoError::StrUtf8(ref err) => write!(formatter, "str Utf8Error error: {}", err),
         }
     }
 }
@@ -34,16 +32,17 @@ impl Display for MatasanoError {
 impl Error for MatasanoError {
     fn description(&self) -> &str {
         match *self {
-            MatasanoError::Crypto(ref err) => match *err {
-                symmetriccipher::SymmetricCipherError::InvalidLength => "Invalid length",
-                symmetriccipher::SymmetricCipherError::InvalidPadding => "Invalid padding",
-            },
+            MatasanoError::Crypto(ref err) => {
+                match *err {
+                    symmetriccipher::SymmetricCipherError::InvalidLength => "Invalid length",
+                    symmetriccipher::SymmetricCipherError::InvalidPadding => "Invalid padding",
+                }
+            }
             MatasanoError::Io(ref err) => err.description(),
-            MatasanoError::FromBase64(ref err) => err.description(),
-            MatasanoError::FromHex(ref err) => err.description(),
-            MatasanoError::FromUtf8(ref err) => err.description(),
+            MatasanoError::Base64(ref err) => err.description(),
+            MatasanoError::Hex(ref err) => err.description(),
+            MatasanoError::Utf8(ref err) => err.description(),
             MatasanoError::Other(ref err) => err,
-            MatasanoError::StrUtf8(ref err) => err.description(),
         }
     }
 }
@@ -56,25 +55,19 @@ impl From<io::Error> for MatasanoError {
 
 impl From<base64::FromBase64Error> for MatasanoError {
     fn from(err: base64::FromBase64Error) -> MatasanoError {
-        MatasanoError::FromBase64(err)
+        MatasanoError::Base64(err)
     }
 }
 
 impl From<hex::FromHexError> for MatasanoError {
     fn from(err: hex::FromHexError) -> MatasanoError {
-        MatasanoError::FromHex(err)
+        MatasanoError::Hex(err)
     }
 }
 
 impl From<string::FromUtf8Error> for MatasanoError {
     fn from(err: string::FromUtf8Error) -> MatasanoError {
-        MatasanoError::FromUtf8(err)
-    }
-}
-
-impl From<str::Utf8Error> for MatasanoError {
-    fn from(err: str::Utf8Error) -> MatasanoError {
-        MatasanoError::StrUtf8(err)
+        MatasanoError::Utf8(err)
     }
 }
 

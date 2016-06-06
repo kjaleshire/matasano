@@ -77,10 +77,39 @@ fn detect_using_ecb() {
 }
 
 #[test]
+#[ignore]
 fn challenge_12_test() {
     use challenge_set_2_answers::challenge_12::*;
 
     let decodec_str = set_2::decrypt_append_str(APPEND_STR).expect("Challenge 12: could not decrypt appended string");
 
-    assert_eq!(EXPECTED_STR, &decodec_str[..])
+    assert_eq!(EXPECTED_STR, &decodec_str[..]);
+}
+
+#[test]
+fn deserialize_profile() {
+    use challenge_set_2_answers::challenge_13::*;
+
+    let object = set_2::deserialize_profile(ENCODED_PROFILE);
+    let email = object.get("email").expect("Challenge 13: email not set in hash");
+
+    assert_eq!(PROPER_EMAIL, email);
+}
+
+#[test]
+fn serialized_profile_for() {
+    use challenge_set_2_answers::challenge_13::*;
+
+    let encoded_profile = set_2::serialized_profile_for(PROPER_EMAIL);
+
+    assert_eq!(ENCODED_PROFILE, encoded_profile);
+}
+
+#[test]
+fn malicious_serialized_profile_for() {
+    use challenge_set_2_answers::challenge_13::*;
+
+    let encoded_profile = set_2::serialized_profile_for(MALICIOUS_EMAIL);
+
+    assert_eq!(SANITIZED_EMAIL, encoded_profile);
 }

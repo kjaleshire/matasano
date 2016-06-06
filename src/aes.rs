@@ -25,7 +25,9 @@ pub fn encrypt_cbc_128_text(plain_text: &[u8], iv: &[u8], key: &[u8]) -> Vec<u8>
     encrypt_cbc_text(plain_text, iv, &encryptor)
 }
 
-pub fn decrypt_ecb_text<T>(cipher_bytes: &[u8], decryptor: &T) -> Vec<u8> where T: BlockDecryptor {
+pub fn decrypt_ecb_text<T>(cipher_bytes: &[u8], decryptor: &T) -> Vec<u8>
+    where T: BlockDecryptor
+{
     let mut decoded_vec = Vec::with_capacity(cipher_bytes.len());
     let mut write_buffer = vec![0; decryptor.block_size()];
 
@@ -38,7 +40,9 @@ pub fn decrypt_ecb_text<T>(cipher_bytes: &[u8], decryptor: &T) -> Vec<u8> where 
     decoded_vec
 }
 
-pub fn encrypt_ecb_text<T>(plain_text: &[u8], encryptor: &T) -> Vec<u8> where T: BlockEncryptor {
+pub fn encrypt_ecb_text<T>(plain_text: &[u8], encryptor: &T) -> Vec<u8>
+    where T: BlockEncryptor
+{
     let mut encoded_vec = Vec::with_capacity(plain_text.len());
     let mut write_buffer = vec![0; encryptor.block_size()];
 
@@ -51,7 +55,9 @@ pub fn encrypt_ecb_text<T>(plain_text: &[u8], encryptor: &T) -> Vec<u8> where T:
     encoded_vec
 }
 
-pub fn decrypt_cbc_text<T>(cipher_bytes: &[u8], iv: &[u8], decryptor: &T) -> Vec<u8> where T: BlockDecryptor {
+pub fn decrypt_cbc_text<T>(cipher_bytes: &[u8], iv: &[u8], decryptor: &T) -> Vec<u8>
+    where T: BlockDecryptor
+{
     let mut decoded_vec = Vec::with_capacity(cipher_bytes.len());
     let mut write_buffer = vec![0; decryptor.block_size()];
     let mut current_iv = iv;
@@ -69,16 +75,19 @@ pub fn decrypt_cbc_text<T>(cipher_bytes: &[u8], iv: &[u8], decryptor: &T) -> Vec
     decoded_vec
 }
 
-pub fn encrypt_cbc_text<T>(plain_text: &[u8], iv: &[u8], encryptor: &T) -> Vec<u8> where T: BlockEncryptor {
+pub fn encrypt_cbc_text<T>(plain_text: &[u8], iv: &[u8], encryptor: &T) -> Vec<u8>
+    where T: BlockEncryptor
+{
     let mut encoded_vec = Vec::with_capacity(plain_text.len());
     let mut write_buffer = vec![0; encryptor.block_size()];
 
     write_buffer.clone_from_slice(iv);
 
     for text_block in plain_text.chunks(encryptor.block_size()) {
-        let current_iv: Vec<u8> = text_block.iter().zip(&write_buffer).map(|(text_byte, iv_byte)|
-            text_byte ^ iv_byte
-        ).collect();
+        let current_iv: Vec<u8> = text_block.iter()
+            .zip(&write_buffer)
+            .map(|(text_byte, iv_byte)| text_byte ^ iv_byte)
+            .collect();
 
         encryptor.encrypt_block(&current_iv, &mut write_buffer);
 
@@ -92,7 +101,8 @@ pub fn pkcs7_pad_vec(byte_vec: &mut Vec<u8>, block_size: usize) -> usize {
     let padded_len = padded_len(byte_vec.len(), block_size);
     let padding_size = padded_len - byte_vec.len();
 
-    assert!(padding_size < block_size, "padding size must be less than block size");
+    assert!(padding_size < block_size,
+            "padding size must be less than block size");
 
     for _ in 0..padding_size {
         byte_vec.push(padding_size as u8);
@@ -104,6 +114,6 @@ pub fn pkcs7_pad_vec(byte_vec: &mut Vec<u8>, block_size: usize) -> usize {
 pub fn padded_len(length: usize, block_size: usize) -> usize {
     match length % block_size {
         0 => length,
-        rem => length + block_size - rem
+        rem => length + block_size - rem,
     }
 }

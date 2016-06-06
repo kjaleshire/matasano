@@ -16,6 +16,6 @@ pub fn dump_bytes(path: &str) -> Result<Vec<u8>, MatasanoError> {
 
     match read_size == size {
         true => Ok(raw_bytes),
-        false => Err(MatasanoError::Other("mismatched sizes: {} vs {}"))
+        false => Err(MatasanoError::Other("mismatched sizes: {} vs {}")),
     }
 }

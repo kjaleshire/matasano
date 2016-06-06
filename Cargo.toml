@@ -9,6 +9,7 @@ path = "src/lib.rs"
 test = false
 
 [dependencies]
-rustc-serialize = "*"
-rust-crypto = "^0.2"
-rand = "0.3"
+rand = "0.3.14"
+rust-crypto = "0.2.35"
+rustc-serialize = "0.3.19"
+url = "1.1.0"

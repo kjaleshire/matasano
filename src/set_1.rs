@@ -15,7 +15,7 @@ pub fn hex_decode_base64(hex_string: &str) -> Result<String, MatasanoError> {
         char_set: Standard,
         newline: Newline::LF,
         pad: true,
-        line_length: None
+        line_length: None,
     };
 
     Ok(hex_string.from_hex()?.to_base64(base64_config))
@@ -30,22 +30,25 @@ pub fn string_xor(hex_string_1: &str, hex_string_2: &str) -> Result<String, Mata
         return Err(MatasanoError::Other("Hex strings must be of equal length"));
     }
 
-    let result: Vec<u8> = byte_vec_1.iter().zip(byte_vec_2).map(|(byte_1, byte_2)| {
-        byte_1 ^ byte_2
-    }).collect();
+    let result: Vec<u8> = byte_vec_1.iter()
+        .zip(byte_vec_2)
+        .map(|(byte_1, byte_2)| byte_1 ^ byte_2)
+        .collect();
 
     Ok(result[..].to_hex())
 }
 
 // Challenge 3
-pub fn break_single_byte_key_from_hex_string(cipher_string: &str) -> Result<decryptor::ByteKeyState, MatasanoError> {
+pub fn break_single_byte_key_from_hex_string(cipher_string: &str)
+                                             -> Result<decryptor::ByteKeyState, MatasanoError> {
     let cipher_bytes = cipher_string.from_hex()?;
 
     Ok(decryptor::break_single_byte_key(&cipher_bytes))
 }
 
 // Challenge 4
-pub fn break_multiline_file_byte_key(file_path: &str) -> Result<decryptor::ByteKeyState, MatasanoError> {
+pub fn break_multiline_file_byte_key(file_path: &str)
+                                     -> Result<decryptor::ByteKeyState, MatasanoError> {
     let lines = file::buffered_file_reader(file_path)?;
 
     decryptor::break_lines_key(lines)
