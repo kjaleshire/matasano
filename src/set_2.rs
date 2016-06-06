@@ -112,7 +112,8 @@ pub fn serialized_profile_for<'a>(email: &'a str) -> String {
 // pub fn decrypt_encrypted_profile<'a>(email: &'a str) -> Result<Vec<u8>, MatasanoError> {
 //     let serialized_profile = cookie::profile_for(email);
 //     let mut oracle = Oracle::new();
-//     let encrypted_profile = aes::encrypt_ecb_128_text(serialized_profile.as_bytes(), &oracle.key);
+//     let encrypted_profile =
+//         aes::encrypt_ecb_128_text(serialized_profile.as_bytes(), &oracle.key);
 //     let base64_config = Config {
 //         char_set: Standard,
 //         newline: Newline::LF,

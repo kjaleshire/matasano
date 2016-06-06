@@ -185,9 +185,9 @@ pub fn break_oracle_append_fn<F>(mut oracle_fn: &mut F) -> Result<Vec<u8>, Matas
 }
 
 fn generate_dictionary<F>(oracle_fn: &mut F,
-                              dictionary: &mut HashMap<Vec<u8>, Vec<u8>>,
-                              prefix_block: &[u8])
-                              -> Result<(), MatasanoError>
+                          dictionary: &mut HashMap<Vec<u8>, Vec<u8>>,
+                          prefix_block: &[u8])
+                          -> Result<(), MatasanoError>
     where F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>
 {
     let mut trial_vec = Vec::with_capacity(prefix_block.len() + 1);
