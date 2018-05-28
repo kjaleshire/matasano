@@ -1,5 +1,3 @@
-#![feature(question_mark)]
-
 pub mod aes;
 pub mod analyzer;
 pub mod cookie;
@@ -9,7 +7,8 @@ pub mod utility;
 pub mod set_1;
 pub mod set_2;
 
-extern crate crypto;
+extern crate base64;
+extern crate hex;
+extern crate openssl;
 extern crate rand;
-extern crate rustc_serialize as serialize;
 extern crate url;

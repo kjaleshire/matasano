@@ -1,5 +1,3 @@
-use std::ascii::AsciiExt;
-
 pub fn string_score(s: &str) -> f32 {
     score_chars(s) + score_digraphs(s)
 }

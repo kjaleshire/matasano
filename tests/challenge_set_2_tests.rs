@@ -18,13 +18,13 @@ fn challenge_9_test() {
 fn challenge_10_test() {
     use challenge_set_2_answers::challenge_10::*;
 
-    let (decrypted_string, cipher_bytes) = set_2::decrypt_encrypt_aes_cbc_file(FILE_PATH, &IV, KEY).unwrap();
+    let (plaintext_string, ciphertext_bytes) = set_2::decrypt_encrypted_aes_cbc_file(FILE_PATH, KEY, &IV).unwrap();
 
-    assert_eq!(decrypted_string[..DECODED_FIRST_LINE.len()], DECODED_FIRST_LINE[..]);
+    assert_eq!(plaintext_string[..DECODED_FIRST_LINE.len()], DECODED_FIRST_LINE[..]);
 
-    let encrypted_vec = set_2::encrypt_aes_cbc_text(&decrypted_string, &IV, KEY);
+    let encrypted_vec = set_2::encrypt_aes_cbc_text(&plaintext_string, KEY, &IV);
 
-    assert_eq!(encrypted_vec, cipher_bytes);
+    assert_eq!(encrypted_vec, ciphertext_bytes);
 }
 
 #[test]
@@ -40,13 +40,13 @@ fn generate_random_key_test() {
 fn encrypt_aes_ecb_text_test() {
     use challenge_set_2_answers::challenge_11::*;
 
-    let (decrypted_text, cipher_bytes) = set_2::decrypt_encrypt_aes_ecb_file(FILE_PATH, KEY).unwrap();
+    let (decrypted_text, ciphertext_bytes) = set_2::decrypt_encrypt_aes_ecb_file(FILE_PATH, KEY).unwrap();
 
     assert_eq!(&decrypted_text[0..DECODED_FIRST_LINE.len()], DECODED_FIRST_LINE);
 
     let encrypted_text = set_2::encrypt_aes_ecb_text(&decrypted_text, KEY);
 
-    assert_eq!(encrypted_text, cipher_bytes);
+    assert_eq!(encrypted_text, ciphertext_bytes);
 }
 
 #[test]

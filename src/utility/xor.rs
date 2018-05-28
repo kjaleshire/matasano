@@ -1,14 +1,16 @@
-use serialize::hex::{FromHex, ToHex};
+use hex;
 
 use super::error::MatasanoError;
 
 pub fn string_xor(hex_string_1: &str, hex_string_2: &str) -> Result<String, MatasanoError> {
-    let byte_vec_1 = hex_string_1.from_hex()?;
-    let byte_vec_2 = hex_string_2.from_hex()?;
+    let byte_vec_1 = hex::decode(hex_string_1)?;
+    let byte_vec_2 = hex::decode(hex_string_2)?;
 
     let result = byte_slice_xor(&byte_vec_1, &byte_vec_2)?;
 
-    Ok(result[..].to_hex())
+    let new_hex_string = hex::encode(result);
+
+    Ok(new_hex_string)
 }
 
 pub fn byte_slice_xor(byte_vec_1: &[u8], byte_vec_2: &[u8]) -> Result<Vec<u8>, MatasanoError> {

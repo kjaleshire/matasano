@@ -1,100 +1,80 @@
-use crypto::aessafe::{AesSafe128Encryptor, AesSafe128Decryptor};
-use crypto::symmetriccipher::{BlockDecryptor, BlockEncryptor};
+use openssl::symm::{encrypt, Cipher, Crypter, Mode};
 
-pub fn decrypt_ecb_128_text(cipher_bytes: &[u8], key: &[u8]) -> Vec<u8> {
-    let decryptor = AesSafe128Decryptor::new(key);
+pub fn decrypt_ecb_text(ciphertext_bytes: &[u8], key: &[u8]) -> Vec<u8> {
+    let cipher = Cipher::aes_128_ecb();
 
-    decrypt_ecb_text(cipher_bytes, &decryptor)
+    ciphertext_bytes.chunks(cipher.block_size()).flat_map(|ciphertext_block| {
+        let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, None)
+                                  .expect("Could not initializer crypter");
+        crypter.pad(false);
+        let mut write_buffer = vec![0; ciphertext_block.len() + cipher.block_size()];
+        let count = crypter.update(ciphertext_block, &mut write_buffer)
+                           .expect("Could not update plaintext buffer");
+        let rest = crypter.finalize(&mut write_buffer[count..])
+                          .expect("Could not finalize decryption");
+        write_buffer.truncate(count + rest);
+
+        write_buffer.clone()
+    }).collect()
 }
 
-pub fn encrypt_ecb_128_text(plain_text: &[u8], key: &[u8]) -> Vec<u8> {
-    let encryptor = AesSafe128Encryptor::new(key);
+pub fn encrypt_ecb_text(plaintext_bytes: &[u8], key: &[u8]) -> Vec<u8> {
+    let cipher = Cipher::aes_128_ecb();
 
-    encrypt_ecb_text(plain_text, &encryptor)
+    plaintext_bytes.chunks(cipher.block_size()).flat_map(|plaintext_block| {
+        let mut write_buffer = encrypt(cipher, key, None, plaintext_block)
+                                .expect("Could not enrypt ecb plaintext");
+        write_buffer.truncate(cipher.block_size());
+
+        write_buffer.clone()
+    }).collect()
 }
 
-pub fn decrypt_cbc_128_text(cipher_bytes: &[u8], iv: &[u8], key: &[u8]) -> Vec<u8> {
-    let decryptor = AesSafe128Decryptor::new(key);
+pub fn decrypt_cbc_text(ciphertext_bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+    let cipher = Cipher::aes_128_ecb();
 
-    decrypt_cbc_text(cipher_bytes, iv, &decryptor)
+    let mut next_iv = iv;
+
+    ciphertext_bytes.chunks(cipher.block_size()).flat_map(|ciphertext_block| {
+        let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, None)
+                                  .expect("Could not initializer crypter");
+        crypter.pad(false);
+        let mut write_buffer = vec![0; ciphertext_block.len() + cipher.block_size()];
+        let count = crypter.update(ciphertext_block, &mut write_buffer)
+                           .expect("Could not update plaintext buffer");
+        let rest = crypter.finalize(&mut write_buffer[count..])
+                          .expect("Could not finalize decryption");
+        write_buffer.truncate(count + rest);
+
+        let current_iv = next_iv;
+        next_iv = &ciphertext_block;
+
+        write_buffer.iter()
+                    .zip(current_iv.iter())
+                    .map(|(decoded_byte, iv_byte)| decoded_byte ^ iv_byte)
+                    .collect::<Vec<u8>>()
+    }).collect()
 }
 
-pub fn encrypt_cbc_128_text(plain_text: &[u8], iv: &[u8], key: &[u8]) -> Vec<u8> {
-    let encryptor = AesSafe128Encryptor::new(key);
+pub fn encrypt_cbc_text(plaintext_bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+    let cipher = Cipher::aes_128_ecb();
 
-    encrypt_cbc_text(plain_text, iv, &encryptor)
-}
+    let mut write_buffer = vec![0; cipher.block_size()];
 
-pub fn decrypt_ecb_text<T>(cipher_bytes: &[u8], decryptor: &T) -> Vec<u8>
-    where T: BlockDecryptor
-{
-    let mut decoded_vec = Vec::with_capacity(cipher_bytes.len());
-    let mut write_buffer = vec![0; decryptor.block_size()];
+    write_buffer.copy_from_slice(iv);
 
-    for cipher_block in cipher_bytes.chunks(decryptor.block_size()) {
-        decryptor.decrypt_block(&cipher_block, &mut write_buffer);
-
-        decoded_vec.extend_from_slice(&write_buffer);
-    }
-
-    decoded_vec
-}
-
-pub fn encrypt_ecb_text<T>(plain_text: &[u8], encryptor: &T) -> Vec<u8>
-    where T: BlockEncryptor
-{
-    let mut encoded_vec = Vec::with_capacity(plain_text.len());
-    let mut write_buffer = vec![0; encryptor.block_size()];
-
-    for text_block in plain_text.chunks(encryptor.block_size()) {
-        encryptor.encrypt_block(&text_block, &mut write_buffer);
-
-        encoded_vec.extend_from_slice(&write_buffer);
-    }
-
-    encoded_vec
-}
-
-pub fn decrypt_cbc_text<T>(cipher_bytes: &[u8], iv: &[u8], decryptor: &T) -> Vec<u8>
-    where T: BlockDecryptor
-{
-    let mut decoded_vec = Vec::with_capacity(cipher_bytes.len());
-    let mut write_buffer = vec![0; decryptor.block_size()];
-    let mut current_iv = iv;
-
-    for cipher_block in cipher_bytes.chunks(decryptor.block_size()) {
-        decryptor.decrypt_block(&cipher_block, &mut write_buffer);
-
-        for (decoded_byte, iv_byte) in write_buffer.iter().zip(current_iv.iter()) {
-            decoded_vec.push(decoded_byte ^ iv_byte);
-        }
-
-        current_iv = &cipher_block;
-    }
-
-    decoded_vec
-}
-
-pub fn encrypt_cbc_text<T>(plain_text: &[u8], iv: &[u8], encryptor: &T) -> Vec<u8>
-    where T: BlockEncryptor
-{
-    let mut encoded_vec = Vec::with_capacity(plain_text.len());
-    let mut write_buffer = vec![0; encryptor.block_size()];
-
-    write_buffer.clone_from_slice(iv);
-
-    for text_block in plain_text.chunks(encryptor.block_size()) {
-        let current_iv: Vec<u8> = text_block.iter()
+    plaintext_bytes.chunks(cipher.block_size()).flat_map(|plaintext_block| {
+        let text_iv_block: Vec<u8> = plaintext_block.iter()
             .zip(&write_buffer)
             .map(|(text_byte, iv_byte)| text_byte ^ iv_byte)
             .collect();
 
-        encryptor.encrypt_block(&current_iv, &mut write_buffer);
+        write_buffer = encrypt(cipher, key, None, &text_iv_block)
+                                     .expect("Could not encrypt cbc plaintext");
+        write_buffer.truncate(cipher.block_size());
 
-        encoded_vec.extend_from_slice(&write_buffer);
-    }
-
-    encoded_vec
+        write_buffer.clone()
+    }).collect()
 }
 
 pub fn pkcs7_pad_vec(byte_vec: &mut Vec<u8>, block_size: usize) -> usize {

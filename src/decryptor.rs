@@ -1,4 +1,4 @@
-use serialize::hex::FromHex;
+use hex;
 
 use std::collections::HashMap;
 use std::io::BufRead;
@@ -80,7 +80,7 @@ pub fn break_lines_key<T>(cipher_lines: T) -> Result<ByteKeyState, MatasanoError
         .enumerate()
         .fold(Ok(initial_state), |state, (next_line_number, next_line)| {
             let current_state = state?;
-            let line = next_line?.from_hex()?;
+            let line = hex::decode(next_line?)?;
             let mut trial_state = break_single_byte_key(&line);
 
             match trial_state.score > current_state.score {

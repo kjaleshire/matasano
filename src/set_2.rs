@@ -1,4 +1,4 @@
-use serialize::base64::{Config, FromBase64, Newline, Standard, ToBase64};
+use base64;
 
 use std::collections::HashMap;
 use std::str;
@@ -23,19 +23,21 @@ pub fn pkcs_pad_string(str_slice: &str, block_size: usize) -> String {
 }
 
 // Challenge 10
-pub fn decrypt_encrypt_aes_cbc_file(file_path: &str,
-                                    iv: &[u8],
-                                    key: &str)
+pub fn decrypt_encrypted_aes_cbc_file(file_path: &str,
+                                    key: &str,
+                                    iv: &[u8])
                                     -> Result<(String, Vec<u8>), MatasanoError> {
-    let cipher_bytes = file::dump_bytes(file_path).unwrap()[..].from_base64().unwrap();
+    let rawfile_bytes = file::dump_bytes(file_path)?;
+    let base64_config = base64::Config::new(base64::CharacterSet::Standard, true, true, base64::LineWrap::NoWrap);
+    let cipher_bytes = base64::decode_config(&rawfile_bytes, base64_config)?;
 
-    let decoded_vec = aes::decrypt_cbc_128_text(&cipher_bytes, iv, key.as_bytes());
+    let decoded_vec = aes::decrypt_cbc_text(&cipher_bytes, key.as_bytes(), iv);
 
     Ok((String::from_utf8(decoded_vec)?, cipher_bytes))
 }
 
-pub fn encrypt_aes_cbc_text(plain_text: &str, iv: &[u8], key: &str) -> Vec<u8> {
-    aes::encrypt_cbc_128_text(plain_text.as_bytes(), iv, key.as_bytes())
+pub fn encrypt_aes_cbc_text(plaintext: &str, key: &str, iv: &[u8]) -> Vec<u8> {
+    aes::encrypt_cbc_text(plaintext.as_bytes(), key.as_bytes(), iv)
 }
 
 // Challenge 11
@@ -48,15 +50,17 @@ pub fn oracle_generate_key_pair() -> (Vec<u8>, Vec<u8>) {
 pub fn decrypt_encrypt_aes_ecb_file(file_path: &str,
                                     key: &str)
                                     -> Result<(String, Vec<u8>), MatasanoError> {
-    let cipher_bytes = file::dump_bytes(file_path).unwrap()[..].from_base64().unwrap();
+    let rawfile_bytes = file::dump_bytes(file_path)?;
+    let base64_config = base64::Config::new(base64::CharacterSet::Standard, true, true, base64::LineWrap::NoWrap);
+    let cipher_bytes = base64::decode_config(&rawfile_bytes, base64_config)?;
 
-    let decoded_vec = aes::decrypt_ecb_128_text(&cipher_bytes, key.as_bytes());
+    let decoded_vec = aes::decrypt_ecb_text(&cipher_bytes, key.as_bytes());
 
     Ok((String::from_utf8(decoded_vec)?, cipher_bytes))
 }
 
-pub fn encrypt_aes_ecb_text(plain_text: &str, key: &str) -> Vec<u8> {
-    aes::encrypt_ecb_128_text(plain_text.as_bytes(), key.as_bytes())
+pub fn encrypt_aes_ecb_text(plaintext: &str, key: &str) -> Vec<u8> {
+    aes::encrypt_ecb_text(plaintext.as_bytes(), key.as_bytes())
 }
 
 pub fn oracle_encrypt_and_guess() -> (analyzer::Mode, analyzer::Mode) {

@@ -2,7 +2,7 @@ use rand;
 use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 
-use serialize::base64::FromBase64;
+use base64;
 
 use aes;
 use analyzer::Mode;
@@ -33,9 +33,10 @@ impl Oracle {
     pub fn new_with_base64_append_str(append_str: &str) -> Result<Self, MatasanoError> {
         let mut rng = rand::thread_rng();
         let key = Self::generate_random_aes_key(&mut rng, 16);
+        let append_vec = base64::decode(append_str)?;
 
         Ok(Oracle {
-            append_vec: Some(append_str.from_base64()?),
+            append_vec: Some(append_vec),
             block_size: 16,
             key: key,
             last_mode: Mode::None,
@@ -76,11 +77,11 @@ impl Oracle {
             true => {
                 self.last_mode = Mode::Cbc;
                 let iv = vec![0; self.block_size];
-                aes::encrypt_cbc_128_text(&mangled_text, &self.key, &iv)
+                aes::encrypt_cbc_text(&mangled_text, &self.key, &iv)
             }
             false => {
                 self.last_mode = Mode::Ecb;
-                aes::encrypt_ecb_128_text(&mangled_text, &self.key)
+                aes::encrypt_ecb_text(&mangled_text, &self.key)
             }
         }
     }
@@ -111,6 +112,6 @@ impl Oracle {
 
         self.last_mode = Mode::Ecb;
 
-        Ok(aes::encrypt_ecb_128_text(&mangled_text, &self.key))
+        Ok(aes::encrypt_ecb_text(&mangled_text, &self.key))
     }
 }

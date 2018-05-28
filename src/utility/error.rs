@@ -1,6 +1,6 @@
-use crypto::symmetriccipher;
-
-use serialize::{base64, hex};
+use base64;
+use hex;
+use openssl;
 
 use std::fmt::{Display, Formatter, Result};
 use std::error::Error;
@@ -8,9 +8,9 @@ use std::{io, str, string};
 
 #[derive(Debug)]
 pub enum MatasanoError {
-    Crypto(symmetriccipher::SymmetricCipherError),
+    Crypto(openssl::error::ErrorStack),
     Io(io::Error),
-    Base64(base64::FromBase64Error),
+    Base64(base64::DecodeError),
     Hex(hex::FromHexError),
     Utf8(string::FromUtf8Error),
     Other(&'static str),
@@ -31,13 +31,8 @@ impl Display for MatasanoError {
 
 impl Error for MatasanoError {
     fn description(&self) -> &str {
-        match *self {
-            MatasanoError::Crypto(ref err) => {
-                match *err {
-                    symmetriccipher::SymmetricCipherError::InvalidLength => "Invalid length",
-                    symmetriccipher::SymmetricCipherError::InvalidPadding => "Invalid padding",
-                }
-            }
+        match self {
+            MatasanoError::Crypto(ref _error_stack) => "openssl returned at least one error",
             MatasanoError::Io(ref err) => err.description(),
             MatasanoError::Base64(ref err) => err.description(),
             MatasanoError::Hex(ref err) => err.description(),
@@ -53,8 +48,8 @@ impl From<io::Error> for MatasanoError {
     }
 }
 
-impl From<base64::FromBase64Error> for MatasanoError {
-    fn from(err: base64::FromBase64Error) -> MatasanoError {
+impl From<base64::DecodeError> for MatasanoError {
+    fn from(err: base64::DecodeError) -> MatasanoError {
         MatasanoError::Base64(err)
     }
 }
@@ -71,8 +66,8 @@ impl From<string::FromUtf8Error> for MatasanoError {
     }
 }
 
-impl From<symmetriccipher::SymmetricCipherError> for MatasanoError {
-    fn from(err: symmetriccipher::SymmetricCipherError) -> MatasanoError {
+impl From<openssl::error::ErrorStack> for MatasanoError {
+    fn from(err: openssl::error::ErrorStack) -> MatasanoError {
         MatasanoError::Crypto(err)
     }
 }

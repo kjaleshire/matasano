@@ -1,4 +1,4 @@
-use serialize::hex::FromHex;
+use hex;
 
 use std::io::BufRead;
 
@@ -15,7 +15,7 @@ pub fn detect_ecb_line<T>(cipher_lines: T) -> Result<usize, MatasanoError>
     where T: BufRead
 {
     for (line_number, line) in cipher_lines.lines().enumerate() {
-        let line_bytes = line?.from_hex()?;
+        let line_bytes = hex::decode(line?)?;
 
         match detect_encryption_mode(&line_bytes, 16) {
             Mode::Ecb => return Ok(line_number + 1),
