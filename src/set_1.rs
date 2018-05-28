@@ -25,16 +25,18 @@ pub fn string_xor(hex_string_1: &str, hex_string_2: &str) -> Result<String, Mata
 }
 
 // Challenge 3
-pub fn break_single_byte_key_from_hex_string(cipher_string: &str)
-                                             -> Result<decryptor::ByteKeyState, MatasanoError> {
+pub fn break_single_byte_key_from_hex_string(
+    cipher_string: &str,
+) -> Result<decryptor::ByteKeyState, MatasanoError> {
     let cipher_bytes = hex::decode(cipher_string)?;
 
     Ok(decryptor::break_single_byte_key(&cipher_bytes))
 }
 
 // Challenge 4
-pub fn break_multiline_file_byte_key(file_path: &str)
-                                     -> Result<decryptor::ByteKeyState, MatasanoError> {
+pub fn break_multiline_file_byte_key(
+    file_path: &str,
+) -> Result<decryptor::ByteKeyState, MatasanoError> {
     let lines = file::buffered_file_reader(file_path)?;
 
     decryptor::break_lines_key(lines)
@@ -54,7 +56,12 @@ pub fn strings_hamming_distance(string_1: &str, string_2: &str) -> usize {
 
 pub fn break_xor_file_repeating_key(file_path: &str) -> Result<Vec<u8>, MatasanoError> {
     let file_bytes = file::dump_bytes(file_path)?;
-    let base64_config = base64::Config::new(base64::CharacterSet::Standard, true, true, base64::LineWrap::NoWrap);
+    let base64_config = base64::Config::new(
+        base64::CharacterSet::Standard,
+        true,
+        true,
+        base64::LineWrap::NoWrap,
+    );
     let cipher_bytes = base64::decode_config(&file_bytes, base64_config)?;
 
     Ok(decryptor::break_repeating_key_xor(&cipher_bytes))
@@ -63,7 +70,12 @@ pub fn break_xor_file_repeating_key(file_path: &str) -> Result<Vec<u8>, Matasano
 // Challenge 7
 pub fn decrypt_aes_ecb_file(file_path: &str, key: &str) -> Result<String, MatasanoError> {
     let file_bytes = file::dump_bytes(file_path)?;
-    let base64_config = base64::Config::new(base64::CharacterSet::Standard, true, true, base64::LineWrap::NoWrap);
+    let base64_config = base64::Config::new(
+        base64::CharacterSet::Standard,
+        true,
+        true,
+        base64::LineWrap::NoWrap,
+    );
     let cipher_bytes = base64::decode_config(&file_bytes, base64_config)?;
     let plaintext = aes::decrypt_ecb_text(&cipher_bytes, key.as_bytes());
 

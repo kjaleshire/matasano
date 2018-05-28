@@ -13,6 +13,8 @@ pub fn parse<'a>(encoded_cookie: &'a str) -> HashMap<String, String> {
 }
 
 pub fn profile_for<'a>(email: &'a str) -> String {
-    format!("email={}&uid=10&role=user",
-            email.replace("=", "").replace("&", ""))
+    format!(
+        "email={}&uid=10&role=user",
+        email.replace("=", "").replace("&", "")
+    )
 }

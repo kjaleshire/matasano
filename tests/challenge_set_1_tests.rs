@@ -17,8 +17,7 @@ fn challenge_1_test() {
 fn challenge_2_test() {
     use challenge_set_1_answers::challenge_2::*;
 
-    let result = set_1::string_xor(STRING_1, STRING_2)
-                            .expect("Challenge 2: could not XOR strings");
+    let result = set_1::string_xor(STRING_1, STRING_2).expect("Challenge 2: could not XOR strings");
 
     assert_eq!(result, RESULT);
 }
@@ -28,7 +27,7 @@ fn challenge_3_test() {
     use challenge_set_1_answers::challenge_3::*;
 
     let decoded_state = set_1::break_single_byte_key_from_hex_string(HEX_STRING)
-                                .expect("Challenge 3: could not unhex string");
+        .expect("Challenge 3: could not unhex string");
 
     assert_eq!(decoded_state.string, PLAINTEXT);
     assert_eq!(decoded_state.key, KEY);
@@ -38,7 +37,8 @@ fn challenge_3_test() {
 fn challenge_4_test() {
     use challenge_set_1_answers::challenge_4::*;
 
-    let decoded_state = set_1::break_multiline_file_byte_key(FILE_PATH).expect("Challenge 4: could not read file");
+    let decoded_state =
+        set_1::break_multiline_file_byte_key(FILE_PATH).expect("Challenge 4: could not read file");
 
     assert_eq!(decoded_state.string, PLAINTEXT);
     assert_eq!(decoded_state.key, KEY);
@@ -67,7 +67,8 @@ fn hamming_distance_test() {
 fn challenge_6_test() {
     use challenge_set_1_answers::challenge_6::*;
 
-    let key = set_1::break_xor_file_repeating_key(FILE_PATH).expect("Challenge 6: could not read file");
+    let key =
+        set_1::break_xor_file_repeating_key(FILE_PATH).expect("Challenge 6: could not read file");
 
     assert_eq!(key, Vec::from(KEY));
 }
@@ -76,9 +77,13 @@ fn challenge_6_test() {
 fn challenge_7_test() {
     use challenge_set_1_answers::challenge_7::*;
 
-    let decrypted_text = set_1::decrypt_aes_ecb_file(FILE_PATH, KEY).expect("Challenge 7: could not read file");
+    let decrypted_text =
+        set_1::decrypt_aes_ecb_file(FILE_PATH, KEY).expect("Challenge 7: could not read file");
 
-    assert_eq!(decrypted_text[0..DECODED_FIRST_LINE.len()], DECODED_FIRST_LINE[..]);
+    assert_eq!(
+        decrypted_text[0..DECODED_FIRST_LINE.len()],
+        DECODED_FIRST_LINE[..]
+    );
 }
 
 #[test]

@@ -18,9 +18,13 @@ fn challenge_9_test() {
 fn challenge_10_test() {
     use challenge_set_2_answers::challenge_10::*;
 
-    let (plaintext_string, ciphertext_bytes) = set_2::decrypt_encrypted_aes_cbc_file(FILE_PATH, KEY, &IV).unwrap();
+    let (plaintext_string, ciphertext_bytes) =
+        set_2::decrypt_encrypted_aes_cbc_file(FILE_PATH, KEY, &IV).unwrap();
 
-    assert_eq!(plaintext_string[..DECODED_FIRST_LINE.len()], DECODED_FIRST_LINE[..]);
+    assert_eq!(
+        plaintext_string[..DECODED_FIRST_LINE.len()],
+        DECODED_FIRST_LINE[..]
+    );
 
     let encrypted_vec = set_2::encrypt_aes_cbc_text(&plaintext_string, KEY, &IV);
 
@@ -40,9 +44,13 @@ fn generate_random_key_test() {
 fn encrypt_aes_ecb_text_test() {
     use challenge_set_2_answers::challenge_11::*;
 
-    let (decrypted_text, ciphertext_bytes) = set_2::decrypt_encrypt_aes_ecb_file(FILE_PATH, KEY).unwrap();
+    let (decrypted_text, ciphertext_bytes) =
+        set_2::decrypt_encrypt_aes_ecb_file(FILE_PATH, KEY).unwrap();
 
-    assert_eq!(&decrypted_text[0..DECODED_FIRST_LINE.len()], DECODED_FIRST_LINE);
+    assert_eq!(
+        &decrypted_text[0..DECODED_FIRST_LINE.len()],
+        DECODED_FIRST_LINE
+    );
 
     let encrypted_text = set_2::encrypt_aes_ecb_text(&decrypted_text, KEY);
 
@@ -62,7 +70,8 @@ fn challenge_11_test() {
 fn detect_block_size() {
     use challenge_set_2_answers::challenge_12::*;
 
-    let block_size = set_2::detect_oracle_block_size(APPEND_STR, 32).expect("Challenge 12: could not detect block size");
+    let block_size = set_2::detect_oracle_block_size(APPEND_STR, 32)
+        .expect("Challenge 12: could not detect block size");
 
     assert_eq!(block_size, 16);
 }
@@ -71,17 +80,18 @@ fn detect_block_size() {
 fn detect_using_ecb() {
     use challenge_set_2_answers::challenge_12::*;
 
-    let (mode, expected_mode) = set_2::detect_oracle_mode(APPEND_STR).expect("Challenge 12: could not detect mode");
+    let (mode, expected_mode) =
+        set_2::detect_oracle_mode(APPEND_STR).expect("Challenge 12: could not detect mode");
 
     assert_eq!(mode, expected_mode);
 }
 
 #[test]
-#[ignore]
 fn challenge_12_test() {
     use challenge_set_2_answers::challenge_12::*;
 
-    let decodec_str = set_2::decrypt_append_str(APPEND_STR).expect("Challenge 12: could not decrypt appended string");
+    let decodec_str = set_2::decrypt_append_str(APPEND_STR)
+        .expect("Challenge 12: could not decrypt appended string");
 
     assert_eq!(EXPECTED_STR, &decodec_str[..]);
 }
@@ -91,7 +101,9 @@ fn deserialize_profile() {
     use challenge_set_2_answers::challenge_13::*;
 
     let object = set_2::deserialize_profile(ENCODED_PROFILE);
-    let email = object.get("email").expect("Challenge 13: email not set in hash");
+    let email = object
+        .get("email")
+        .expect("Challenge 13: email not set in hash");
 
     assert_eq!(PROPER_EMAIL, email);
 }

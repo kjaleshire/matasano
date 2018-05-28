@@ -18,7 +18,11 @@ pub fn byte_slice_xor(byte_vec_1: &[u8], byte_vec_2: &[u8]) -> Result<Vec<u8>, M
         return Err(MatasanoError::Other("Hex strings must be of equal length"));
     }
 
-    Ok(byte_vec_1.iter().zip(byte_vec_2).map(|(byte_1, byte_2)| byte_1 ^ byte_2).collect())
+    Ok(byte_vec_1
+        .iter()
+        .zip(byte_vec_2)
+        .map(|(byte_1, byte_2)| byte_1 ^ byte_2)
+        .collect())
 }
 
 pub fn repeating_key_xor(plain_text: &[u8], key: &[u8]) -> Vec<u8> {

@@ -2,8 +2,8 @@ use base64;
 use hex;
 use openssl;
 
-use std::fmt::{Display, Formatter, Result};
 use std::error::Error;
+use std::fmt::{Display, Formatter, Result};
 use std::{io, str, string};
 
 #[derive(Debug)]

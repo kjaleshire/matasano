@@ -50,14 +50,12 @@ pub fn break_single_byte_key(cipher_bytes: &[u8]) -> ByteKeyState {
                 let score = english::string_score(str_slice);
 
                 match score > current_state.score {
-                    true => {
-                        ByteKeyState {
-                            score: score,
-                            key: trial_key_byte,
-                            line: 0,
-                            string: String::from(str_slice),
-                        }
-                    }
+                    true => ByteKeyState {
+                        score: score,
+                        key: trial_key_byte,
+                        line: 0,
+                        string: String::from(str_slice),
+                    },
                     false => current_state,
                 }
             }
@@ -67,7 +65,8 @@ pub fn break_single_byte_key(cipher_bytes: &[u8]) -> ByteKeyState {
 }
 
 pub fn break_lines_key<T>(cipher_lines: T) -> Result<ByteKeyState, MatasanoError>
-    where T: BufRead
+where
+    T: BufRead,
 {
     let initial_state = ByteKeyState {
         score: 0.0,
@@ -76,9 +75,9 @@ pub fn break_lines_key<T>(cipher_lines: T) -> Result<ByteKeyState, MatasanoError
         string: String::with_capacity(0),
     };
 
-    cipher_lines.lines()
-        .enumerate()
-        .fold(Ok(initial_state), |state, (next_line_number, next_line)| {
+    cipher_lines.lines().enumerate().fold(
+        Ok(initial_state),
+        |state, (next_line_number, next_line)| {
             let current_state = state?;
             let line = hex::decode(next_line?)?;
             let mut trial_state = break_single_byte_key(&line);
@@ -90,7 +89,8 @@ pub fn break_lines_key<T>(cipher_lines: T) -> Result<ByteKeyState, MatasanoError
                 }
                 false => Ok(current_state),
             }
-        })
+        },
+    )
 }
 
 pub fn break_repeating_key_xor(cipher_bytes: &[u8]) -> Vec<u8> {
@@ -116,12 +116,10 @@ pub fn break_repeating_key_xor(cipher_bytes: &[u8]) -> Vec<u8> {
             let normalized_distance = sum_distance as f32 / (passes * trial_size) as f32;
 
             match normalized_distance < current_state.distance {
-                true => {
-                    KeyState {
-                        size: trial_size,
-                        distance: normalized_distance,
-                    }
-                }
+                true => KeyState {
+                    size: trial_size,
+                    distance: normalized_distance,
+                },
                 false => current_state,
             }
         })
@@ -145,7 +143,8 @@ pub fn break_repeating_key_xor(cipher_bytes: &[u8]) -> Vec<u8> {
 }
 
 pub fn break_oracle_append_fn<F>(mut oracle_fn: &mut F) -> Result<Vec<u8>, MatasanoError>
-    where F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>
+where
+    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
 {
     let mut dictionary = HashMap::new();
 
@@ -159,23 +158,20 @@ pub fn break_oracle_append_fn<F>(mut oracle_fn: &mut F) -> Result<Vec<u8>, Matas
         for byte_index in 0..block_size {
             let block_base = block_index * block_size;
 
-            generate_dictionary(&mut |block| oracle_fn(block),
-                                &mut dictionary,
-                                &decoded_vec[block_base + byte_index..])
-                ?;
+            generate_dictionary(
+                &mut |block| oracle_fn(block),
+                &mut dictionary,
+                &decoded_vec[block_base + byte_index..],
+            )?;
 
             let encoded_vec = oracle_fn(&decoded_vec[..block_size - byte_index - 1])?;
 
             match dictionary.get(&encoded_vec[block_base..block_base + block_size]) {
-                Some(value) => {
-                    match value.last() {
-                        Some(&1) => break 'block_iter,
-                        Some(&last_byte) => decoded_vec.push(last_byte),
-                        None => {
-                            return Err(MatasanoError::Other("How do we have an empty vec here"))
-                        }
-                    }
-                }
+                Some(value) => match value.last() {
+                    Some(&1) => break 'block_iter,
+                    Some(&last_byte) => decoded_vec.push(last_byte),
+                    None => return Err(MatasanoError::Other("How do we have an empty vec here")),
+                },
                 None => return Err(MatasanoError::Other("No match for key")),
             }
         }
@@ -184,11 +180,13 @@ pub fn break_oracle_append_fn<F>(mut oracle_fn: &mut F) -> Result<Vec<u8>, Matas
     Ok(decoded_vec.split_off(block_size - 1))
 }
 
-fn generate_dictionary<F>(oracle_fn: &mut F,
-                          dictionary: &mut HashMap<Vec<u8>, Vec<u8>>,
-                          prefix_block: &[u8])
-                          -> Result<(), MatasanoError>
-    where F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>
+fn generate_dictionary<F>(
+    oracle_fn: &mut F,
+    dictionary: &mut HashMap<Vec<u8>, Vec<u8>>,
+    prefix_block: &[u8],
+) -> Result<(), MatasanoError>
+where
+    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
 {
     let mut trial_vec = Vec::with_capacity(prefix_block.len() + 1);
 
@@ -200,8 +198,10 @@ fn generate_dictionary<F>(oracle_fn: &mut F,
         trial_vec.push(index);
         let encoded_vec = oracle_fn(&trial_vec)?;
 
-        dictionary.insert(encoded_vec[..prefix_block.len() + 1].to_vec(),
-                          trial_vec.clone());
+        dictionary.insert(
+            encoded_vec[..prefix_block.len() + 1].to_vec(),
+            trial_vec.clone(),
+        );
 
         let _ = trial_vec.pop();
     }

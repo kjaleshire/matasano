@@ -1,6 +1,6 @@
 use rand;
-use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
+use rand::Rng;
 
 use base64;
 
@@ -86,17 +86,20 @@ impl Oracle {
         }
     }
 
-    pub fn randomly_append_and_encrypt_text<'a>(&mut self,
-                                                plain_text: &'a [u8])
-                                                -> Result<Vec<u8>, MatasanoError> {
+    pub fn randomly_append_and_encrypt_text<'a>(
+        &mut self,
+        plain_text: &'a [u8],
+    ) -> Result<Vec<u8>, MatasanoError> {
         let mut mangled_text: Vec<u8>;
 
         {
             let append_vec = match self.append_vec {
                 Some(ref vec) => vec,
                 None => {
-                    return Err(MatasanoError::Other("Must set the append vec before using this \
-                                                     method"))
+                    return Err(MatasanoError::Other(
+                        "Must set the append vec before using this \
+                         method",
+                    ))
                 }
             };
 

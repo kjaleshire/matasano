@@ -12,7 +12,8 @@ pub enum Mode {
 }
 
 pub fn detect_ecb_line<T>(cipher_lines: T) -> Result<usize, MatasanoError>
-    where T: BufRead
+where
+    T: BufRead,
 {
     for (line_number, line) in cipher_lines.lines().enumerate() {
         let line_bytes = hex::decode(line?)?;
@@ -28,17 +29,23 @@ pub fn detect_ecb_line<T>(cipher_lines: T) -> Result<usize, MatasanoError>
 
 pub fn detect_encryption_mode(byte_slice: &[u8], block_size: usize) -> Mode {
     for (index, chunk) in byte_slice[..].chunks(block_size).enumerate() {
-        if byte_slice[..].chunks(block_size).skip(index + 1).any(|other| chunk == other) {
+        if byte_slice[..]
+            .chunks(block_size)
+            .skip(index + 1)
+            .any(|other| chunk == other)
+        {
             return Mode::Ecb;
         }
     }
     Mode::Cbc
 }
 
-pub fn detect_oracle_block_size<F>(oracle_fn: &mut F,
-                                   try_up_to: usize)
-                                   -> Result<usize, MatasanoError>
-    where F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>
+pub fn detect_oracle_block_size<F>(
+    oracle_fn: &mut F,
+    try_up_to: usize,
+) -> Result<usize, MatasanoError>
+where
+    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
 {
     let trial_block = vec![0x65 as u8; try_up_to * 2];
 
