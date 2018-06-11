@@ -22,9 +22,14 @@ pub mod challenge_12 {
 }
 
 pub mod challenge_13 {
+    pub static SERIALIZED_COOKIE: &'static str = "foo=bar&baz=qux&zap=zazzle";
+    pub static DESERIALIZED_COOKIE: [(&str, &str); 3] =
+        [("foo", "bar"), ("baz", "qux"), ("zap", "zazzle")];
+
     pub static PROPER_EMAIL: &'static str = "foo@bar.com";
-    pub static ENCODED_PROFILE: &'static str = "email=foo@bar.com&uid=10&role=user";
+    pub static SERIALIZED_PROFILE: &'static str = "email=foo@bar.com&uid=10&role=user";
 
     pub static MALICIOUS_EMAIL: &'static str = "foo@bar.com&role=admin";
-    pub static SANITIZED_EMAIL: &'static str = "email=foo@bar.comroleadmin&uid=10&role=user";
+    pub static SANITIZED_SERIALIZED_COOKIE: &'static str =
+        "email=foo@bar.comroleadmin&uid=10&role=user";
 }

@@ -196,12 +196,10 @@ where
 
     for index in 0..u8::max_value() {
         trial_vec.push(index);
-        let encoded_vec = oracle_fn(&trial_vec)?;
+        let mut encoded_vec = oracle_fn(&trial_vec)?;
+        encoded_vec.truncate(prefix_block.len() + 1);
 
-        dictionary.insert(
-            encoded_vec[..prefix_block.len() + 1].to_vec(),
-            trial_vec.clone(),
-        );
+        dictionary.insert(encoded_vec, trial_vec.clone());
 
         let _ = trial_vec.pop();
     }

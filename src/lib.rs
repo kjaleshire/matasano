@@ -11,4 +11,7 @@ extern crate base64;
 extern crate hex;
 extern crate openssl;
 extern crate rand;
-extern crate url;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_urlencoded;

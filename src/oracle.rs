@@ -1,8 +1,9 @@
-use rand;
-use rand::distributions::{IndependentSample, Range};
-use rand::Rng;
-
 use base64;
+use rand::{
+    self,
+    distributions::{IndependentSample, Range},
+    Rng,
+};
 
 use aes;
 use analyzer::Mode;
@@ -19,7 +20,7 @@ pub struct Oracle {
 impl Oracle {
     pub fn new() -> Self {
         let mut rng = rand::thread_rng();
-        let key = Self::generate_random_aes_key(&mut rng, 16);
+        let key = aes::generate_random_aes_key(&mut rng, 16);
 
         Oracle {
             append_vec: None,
@@ -32,7 +33,7 @@ impl Oracle {
 
     pub fn new_with_base64_append_str(append_str: &str) -> Result<Self, MatasanoError> {
         let mut rng = rand::thread_rng();
-        let key = Self::generate_random_aes_key(&mut rng, 16);
+        let key = aes::generate_random_aes_key(&mut rng, 16);
         let append_vec = base64::decode(append_str)?;
 
         Ok(Oracle {
@@ -44,12 +45,8 @@ impl Oracle {
         })
     }
 
-    fn generate_random_aes_key(rng: &mut rand::ThreadRng, block_size: usize) -> Vec<u8> {
-        (0..block_size).map(|_| rng.gen()).collect()
-    }
-
     pub fn set_random_aes_key(&mut self) -> Vec<u8> {
-        Self::generate_random_aes_key(&mut self.rng, self.block_size)
+        aes::generate_random_aes_key(&mut self.rng, self.block_size)
     }
 
     pub fn randomly_mangled_encrypted_text(&mut self) -> Vec<u8> {

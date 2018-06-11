@@ -1,15 +1,13 @@
 use base64;
 
-use std::collections::HashMap;
-use std::str;
+use std::{collections::HashMap, str};
 
 use aes;
 use analyzer;
 use cookie;
 use decryptor;
 use oracle::Oracle;
-use utility::error::MatasanoError;
-use utility::file;
+use utility::{error::MatasanoError, file};
 
 // Challenge 9
 pub fn pkcs_pad_string(str_slice: &str, block_size: usize) -> String {
@@ -85,8 +83,8 @@ pub fn oracle_encrypt_and_guess() -> (analyzer::Mode, analyzer::Mode) {
 }
 
 // Challenge 12
-pub fn detect_oracle_block_size<'a>(
-    append_str: &'a str,
+pub fn detect_oracle_block_size(
+    append_str: &str,
     try_up_to: usize,
 ) -> Result<usize, MatasanoError> {
     let mut oracle = Oracle::new_with_base64_append_str(&append_str)?;
@@ -97,8 +95,8 @@ pub fn detect_oracle_block_size<'a>(
     )
 }
 
-pub fn detect_oracle_mode<'a>(
-    append_str: &'a str,
+pub fn detect_oracle_mode(
+    append_str: &str,
 ) -> Result<(analyzer::Mode, analyzer::Mode), MatasanoError> {
     let mut oracle = Oracle::new_with_base64_append_str(&append_str)?;
 
@@ -112,7 +110,7 @@ pub fn detect_oracle_mode<'a>(
     ))
 }
 
-pub fn decrypt_append_str<'a>(append_str: &'a str) -> Result<String, MatasanoError> {
+pub fn decrypt_append_str(append_str: &str) -> Result<String, MatasanoError> {
     let mut oracle = Oracle::new_with_base64_append_str(&append_str)?;
 
     let decoded_vec = decryptor::break_oracle_append_fn(&mut |block| {
@@ -123,29 +121,76 @@ pub fn decrypt_append_str<'a>(append_str: &'a str) -> Result<String, MatasanoErr
 }
 
 // Challenge 13
-pub fn deserialize_profile<'a>(encoded_profile: &'a str) -> HashMap<String, String> {
-    cookie::parse(encoded_profile)
+pub fn deserialize_cookie(encoded_cookie: &str) -> HashMap<String, String> {
+    cookie::Cookie::deserialize_cookie(encoded_cookie)
 }
 
-pub fn serialized_profile_for<'a>(email: &'a str) -> String {
-    cookie::profile_for(email)
+pub fn serialized_profile_for(email: &str) -> String {
+    let cookie = cookie::Cookie::new();
+    cookie.profile_for(email)
 }
 
-// pub fn decrypt_encrypted_profile<'a>(email: &'a str) -> Result<Vec<u8>, MatasanoError> {
-//     let serialized_profile = cookie::profile_for(email);
-//     let mut oracle = Oracle::new();
-//     let encrypted_profile =
-//         aes::encrypt_ecb_128_text(serialized_profile.as_bytes(), &oracle.key);
-//     let base64_config = Config {
-//         char_set: Standard,
-//         newline: Newline::LF,
-//         pad: true,
-//         line_length: None,
-//     };
-//     oracle.append_vec = Some(encrypted_profile.to_base64(base64_config).into());
-//
-//     decryptor::break_oracle_append_fn(&mut |block| {
-//         let email = str::from(block)?;
-//         Ok(cookie::profile_for(&email))
-//     })
-// }
+pub fn create_cookie() -> cookie::Cookie {
+    cookie::Cookie::new()
+}
+
+pub fn encrypted_profile_for(cookie: &cookie::Cookie, email: &str) -> Vec<u8> {
+    cookie.encrypted_profile_for(email)
+}
+
+pub fn decrypted_profile_from(
+    cookie: &cookie::Cookie,
+    encrypted_profile: &[u8],
+) -> cookie::Profile {
+    cookie.decrypted_profile_for(encrypted_profile)
+}
+
+pub fn craft_encrypted_admin_profile(cookie: &cookie::Cookie) -> Vec<u8> {
+    let mut malicious_block = Vec::from("admin");
+    let _padding = aes::pkcs7_pad_vec(&mut malicious_block, cookie.block_size());
+    let mut malicious_email = String::from_utf8(malicious_block).expect("not a utf8 string");
+
+    let mut first_encrypted_profile = cookie.encrypted_profile_for(&mut malicious_email);
+    malicious_email.insert(0, 'A');
+    let mut second_encrypted_profile = cookie.encrypted_profile_for(&mut malicious_email);
+
+    let detect_matching_blocks = |vec1: &[u8], vec2: &[u8]| {
+        let iter1 = vec1.chunks(cookie.block_size());
+        let iter2 = vec2.chunks(cookie.block_size());
+        iter1.zip(iter2).filter(|(block1, block2)| block1 == block2 ).count()
+    };
+
+    let matching_blocks = detect_matching_blocks(&first_encrypted_profile, &second_encrypted_profile) + 1;
+
+    loop {
+        first_encrypted_profile = second_encrypted_profile;
+        malicious_email.insert(0, 'A');
+        second_encrypted_profile = cookie.encrypted_profile_for(&mut malicious_email);
+        if matching_blocks <= detect_matching_blocks(&first_encrypted_profile, &second_encrypted_profile) {
+            break;
+        }
+    }
+
+    let mut admin_block = first_encrypted_profile.split_off(matching_blocks * cookie.block_size());
+    admin_block.truncate(cookie.block_size());
+
+    let mut username = String::from("fo");
+    let create_email = |username: &str| format!("{}@bar.com", username);
+
+    first_encrypted_profile = cookie.encrypted_profile_for(&create_email(&username));
+    let message_len = first_encrypted_profile.len();
+    username.push('o');
+    second_encrypted_profile = cookie.encrypted_profile_for(&create_email(&username));
+
+    while first_encrypted_profile.len() == second_encrypted_profile.len() {
+        first_encrypted_profile = second_encrypted_profile;
+        username.push('o');
+        second_encrypted_profile = cookie.encrypted_profile_for(&create_email(&username));
+    }
+
+    username.push_str("ooo");
+    first_encrypted_profile = cookie.encrypted_profile_for(&create_email(&username));
+    first_encrypted_profile.truncate(message_len);
+    first_encrypted_profile.append(&mut admin_block);
+    first_encrypted_profile
+}
