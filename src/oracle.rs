@@ -1,9 +1,5 @@
 use base64;
-use rand::{
-    self,
-    distributions::{IndependentSample, Range},
-    Rng,
-};
+use rand::{self, distributions::Standard, Rng};
 
 use aes;
 use analyzer::Mode;
@@ -15,34 +11,48 @@ pub struct Oracle {
     pub key: Vec<u8>,
     pub last_mode: Mode,
     pub rng: rand::ThreadRng,
+    pub random_prepend: Option<Vec<u8>>,
 }
 
 impl Oracle {
     pub fn new() -> Self {
+        let block_size = 16;
         let mut rng = rand::thread_rng();
-        let key = aes::generate_random_aes_key(&mut rng, 16);
+        let key = aes::generate_random_aes_key(&mut rng, block_size);
 
         Oracle {
             append_vec: None,
-            block_size: 16,
+            block_size: block_size,
             key: key,
             last_mode: Mode::None,
             rng: rng,
+            random_prepend: None,
         }
     }
 
     pub fn new_with_base64_append_str(append_str: &str) -> Result<Self, MatasanoError> {
+        let block_size = 16;
         let mut rng = rand::thread_rng();
-        let key = aes::generate_random_aes_key(&mut rng, 16);
+        let key = aes::generate_random_aes_key(&mut rng, block_size);
         let append_vec = base64::decode(append_str)?;
 
         Ok(Oracle {
             append_vec: Some(append_vec),
-            block_size: 16,
+            block_size: block_size,
             key: key,
             last_mode: Mode::None,
             rng: rng,
+            random_prepend: None,
         })
+    }
+
+    pub fn new_with_base64_append_str_and_random_prepend(
+        append_str: &str,
+    ) -> Result<Self, MatasanoError> {
+        let mut oracle = Self::new_with_base64_append_str(append_str)?;
+        let length = oracle.rng.gen_range(0, 64);
+        oracle.random_prepend = Some(oracle.rng.sample_iter(&Standard).take(length).collect());
+        Ok(oracle)
     }
 
     pub fn set_random_aes_key(&mut self) -> Vec<u8> {
@@ -52,8 +62,8 @@ impl Oracle {
     pub fn randomly_mangled_encrypted_text(&mut self) -> Vec<u8> {
         let text_size = 3 * self.block_size;
         let random_byte: u8 = self.rng.gen();
-        let prefix_size = Range::new(5, 11).ind_sample(&mut self.rng);
-        let suffix_size = Range::new(5, 11).ind_sample(&mut self.rng);
+        let prefix_size = self.rng.gen_range(5, 11);
+        let suffix_size = self.rng.gen_range(5, 11);
         let vec_size = aes::padded_len(prefix_size + text_size + suffix_size, self.block_size);
 
         let mut mangled_text = Vec::with_capacity(vec_size);
@@ -83,7 +93,7 @@ impl Oracle {
         }
     }
 
-    pub fn randomly_append_and_encrypt_text<'a>(
+    pub fn randomly_append_prepend_and_encrypt_text<'a>(
         &mut self,
         plain_text: &'a [u8],
     ) -> Result<Vec<u8>, MatasanoError> {
@@ -106,6 +116,12 @@ impl Oracle {
 
             mangled_text.extend_from_slice(&plain_text);
             mangled_text.extend_from_slice(&append_vec);
+
+            if let Some(ref random_prepend) = self.random_prepend {
+                let mut prepend_vec = random_prepend.clone();
+                prepend_vec.extend_from_slice(&mangled_text);
+                mangled_text = prepend_vec;
+            }
         }
 
         let _ = aes::pkcs7_pad_vec(&mut mangled_text, self.block_size);

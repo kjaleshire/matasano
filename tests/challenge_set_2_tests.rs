@@ -155,7 +155,7 @@ fn encrypt_decrypt_profile() {
 }
 
 #[test]
-fn substitute_admin_role() {
+fn challenge_13_test() {
     let cookie = set_2::create_cookie();
 
     let malicious_encrypted_profile = set_2::craft_encrypted_admin_profile(&cookie);
@@ -163,4 +163,14 @@ fn substitute_admin_role() {
     let profile = set_2::decrypted_profile_from(&cookie, &malicious_encrypted_profile);
 
     assert_eq!("admin", &profile.role[0..5]);
+}
+
+#[test]
+fn challenge_14_test() {
+    use challenge_set_2_answers::challenge_12::{APPEND_STR, EXPECTED_STR};
+
+    let decodec_str = set_2::decrypt_append_str_with_random_prepend(APPEND_STR)
+        .expect("Challenge 14: could not decrypt appended string");
+
+    assert_eq!(EXPECTED_STR, &decodec_str[..]);
 }

@@ -1,6 +1,5 @@
 use hex;
 
-use std::collections::HashMap;
 use std::io::BufRead;
 use std::str;
 
@@ -33,7 +32,7 @@ pub fn break_single_byte_key(cipher_bytes: &[u8]) -> ByteKeyState {
         score: 0.0,
         key: 0,
         line: 0,
-        string: String::with_capacity(0),
+        string: String::new(),
     };
 
     let mut decoded_vec = Vec::with_capacity(cipher_bytes.len());
@@ -72,7 +71,7 @@ where
         score: 0.0,
         key: 0x0,
         line: 0,
-        string: String::with_capacity(0),
+        string: String::new(),
     };
 
     cipher_lines.lines().enumerate().fold(
@@ -146,63 +145,140 @@ pub fn break_oracle_append_fn<F>(mut oracle_fn: &mut F) -> Result<Vec<u8>, Matas
 where
     F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
 {
-    let mut dictionary = HashMap::new();
-
     let block_size = analyzer::detect_oracle_block_size(&mut oracle_fn, 32)?;
+
+    // The size of the message we're trying to decode
     let max_decoded_size = oracle_fn(&[0; 0])?.len();
 
+    // The vec for holding our eventually decoded bytes
     let mut decoded_vec = Vec::with_capacity(max_decoded_size + block_size);
+    // Pre-populate with block size - 1 number of A's, so we can examine the last
+    // byte.
     decoded_vec.resize(block_size - 1, 0x65);
 
+    // Iterate over each block in the message
     'block_iter: for block_index in 0..(max_decoded_size / block_size) {
+        // Iterate over each byte in the given block
         for byte_index in 0..block_size {
+            // The total byte length of the blocks we've already decoded
             let block_base = block_index * block_size;
+            let new_byte;
 
-            generate_dictionary(
-                &mut |block| oracle_fn(block),
-                &mut dictionary,
-                &decoded_vec[block_base + byte_index..],
-            )?;
+            {
+                let current_decoded_block = &decoded_vec[..block_size - byte_index - 1];
+                let encoded_vec = oracle_fn(current_decoded_block)?;
+                let prefix_block = &decoded_vec[block_base + byte_index..];
+                let current_encrypted_block = &encoded_vec[block_base..block_base + block_size];
 
-            let encoded_vec = oracle_fn(&decoded_vec[..block_size - byte_index - 1])?;
-
-            match dictionary.get(&encoded_vec[block_base..block_base + block_size]) {
-                Some(value) => match value.last() {
-                    Some(&1) => break 'block_iter,
-                    Some(&last_byte) => decoded_vec.push(last_byte),
-                    None => return Err(MatasanoError::Other("How do we have an empty vec here")),
-                },
-                None => return Err(MatasanoError::Other("No match for key")),
+                match find_matching_byte_from_encrypted_block(
+                    oracle_fn,
+                    prefix_block,
+                    current_encrypted_block,
+                )? {
+                    None => break 'block_iter,
+                    // Found a match, push the newly decoded byte onto the decoded vec
+                    Some(last_byte) => new_byte = last_byte,
+                }
             }
+
+            decoded_vec.push(new_byte);
         }
     }
 
+    // return the decoded vec minus the prepended A's we started with
     Ok(decoded_vec.split_off(block_size - 1))
 }
 
-fn generate_dictionary<F>(
+fn find_matching_byte_from_encrypted_block<F>(
     oracle_fn: &mut F,
-    dictionary: &mut HashMap<Vec<u8>, Vec<u8>>,
     prefix_block: &[u8],
-) -> Result<(), MatasanoError>
+    current_encrypted_block: &[u8],
+) -> Result<Option<u8>, MatasanoError>
 where
     F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
 {
     let mut trial_vec = Vec::with_capacity(prefix_block.len() + 1);
 
     trial_vec.extend_from_slice(prefix_block);
-
-    dictionary.clear();
+    trial_vec.push(0x65);
 
     for index in 0..u8::max_value() {
-        trial_vec.push(index);
+        trial_vec[prefix_block.len()] = index;
         let mut encoded_vec = oracle_fn(&trial_vec)?;
         encoded_vec.truncate(prefix_block.len() + 1);
 
-        dictionary.insert(encoded_vec, trial_vec.clone());
-
-        let _ = trial_vec.pop();
+        if encoded_vec == current_encrypted_block {
+            match index {
+                // `1` is the PKS 7 padding that indicates we're at the end of the message
+                // And therefore done
+                1 => return Ok(None),
+                // Found a match, push the newly decoded byte onto the decoded vec
+                last_byte => return Ok(Some(last_byte)),
+            }
+        }
     }
 
-    Ok(())
+    Err(MatasanoError::Other("No match found for block"))
+}
+
+pub fn break_oracle_append_prepend_fn<F>(oracle_fn: &mut F) -> Result<Vec<u8>, MatasanoError>
+where
+    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
+{
+    let block_size = 16;
+    let plaintext = Vec::new();
+    let (matching_blocks, prepend_vec, _) =
+        find_matching_blocks(oracle_fn, &plaintext, block_size)?;
+
+    // Here we craft a new oracle function that removes the randomly prepended string
+    // and calls the original oracle function
+    break_oracle_append_fn(&mut |plaintext| {
+        // Craft a new plaintext that pads the random string to the next block boundary
+        let mut new_plaintext = prepend_vec.clone();
+        // Prepend this new plaintext to the original one
+        new_plaintext.extend_from_slice(plaintext);
+        // Once it's encrypted, we know we can safely strip off the necessary number of encrypted
+        // blocks that represent both the random string and our prepended new plaintext
+        match oracle_fn(&new_plaintext) {
+            Ok(ref mut ciphertext) => Ok(ciphertext.split_off(matching_blocks * block_size)),
+            err => err,
+        }
+    })
+}
+
+pub fn find_matching_blocks<F>(
+    oracle_fn: &mut F,
+    initial_plaintext: &Vec<u8>,
+    block_size: usize,
+) -> Result<(usize, Vec<u8>, Vec<u8>), MatasanoError>
+where
+    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
+{
+    let mut plaintext = initial_plaintext.clone();
+    let mut first_ciphertext = oracle_fn(&plaintext)?;
+    plaintext.insert(0, 0x65);
+    let mut second_ciphertext = oracle_fn(&plaintext)?;
+
+    let detect_matching_blocks = |vec1: &[u8], vec2: &[u8]| {
+        let iter1 = vec1.chunks(block_size);
+        let iter2 = vec2.chunks(block_size);
+        iter1
+            .zip(iter2)
+            .filter(|(block1, block2)| block1 == block2)
+            .count()
+    };
+
+    let matching_blocks = detect_matching_blocks(&first_ciphertext, &second_ciphertext) + 1;
+
+    loop {
+        first_ciphertext = second_ciphertext;
+        plaintext.insert(0, 0x65);
+        second_ciphertext = oracle_fn(&plaintext)?;
+        if matching_blocks <= detect_matching_blocks(&first_ciphertext, &second_ciphertext) {
+            let _ = plaintext.pop();
+            break;
+        }
+    }
+
+    Ok((matching_blocks, plaintext, first_ciphertext))
 }

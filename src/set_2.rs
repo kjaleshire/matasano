@@ -90,7 +90,7 @@ pub fn detect_oracle_block_size(
     let mut oracle = Oracle::new_with_base64_append_str(&append_str)?;
 
     analyzer::detect_oracle_block_size(
-        &mut |block| oracle.randomly_append_and_encrypt_text(block),
+        &mut |plaintext| oracle.randomly_append_prepend_and_encrypt_text(plaintext),
         try_up_to,
     )
 }
@@ -102,7 +102,7 @@ pub fn detect_oracle_mode(
 
     let trial_block = vec![0x65 as u8; 128];
 
-    let encoded_vec = oracle.randomly_append_and_encrypt_text(&trial_block)?;
+    let encoded_vec = oracle.randomly_append_prepend_and_encrypt_text(&trial_block)?;
 
     Ok((
         analyzer::detect_encryption_mode(&encoded_vec, 16),
@@ -114,7 +114,7 @@ pub fn decrypt_append_str(append_str: &str) -> Result<String, MatasanoError> {
     let mut oracle = Oracle::new_with_base64_append_str(&append_str)?;
 
     let decoded_vec = decryptor::break_oracle_append_fn(&mut |block| {
-        oracle.randomly_append_and_encrypt_text(block)
+        oracle.randomly_append_prepend_and_encrypt_text(block)
     })?;
 
     Ok(String::from_utf8(decoded_vec)?)
@@ -148,32 +148,24 @@ pub fn decrypted_profile_from(
 pub fn craft_encrypted_admin_profile(cookie: &cookie::Cookie) -> Vec<u8> {
     let mut malicious_block = Vec::from("admin");
     let _padding = aes::pkcs7_pad_vec(&mut malicious_block, cookie.block_size());
-    let mut malicious_email = String::from_utf8(malicious_block).expect("not a utf8 string");
 
-    let mut first_encrypted_profile = cookie.encrypted_profile_for(&mut malicious_email);
-    malicious_email.insert(0, 'A');
-    let mut second_encrypted_profile = cookie.encrypted_profile_for(&mut malicious_email);
-
-    let detect_matching_blocks = |vec1: &[u8], vec2: &[u8]| {
-        let iter1 = vec1.chunks(cookie.block_size());
-        let iter2 = vec2.chunks(cookie.block_size());
-        iter1.zip(iter2).filter(|(block1, block2)| block1 == block2 ).count()
-    };
-
-    let matching_blocks = detect_matching_blocks(&first_encrypted_profile, &second_encrypted_profile) + 1;
-
-    loop {
-        first_encrypted_profile = second_encrypted_profile;
-        malicious_email.insert(0, 'A');
-        second_encrypted_profile = cookie.encrypted_profile_for(&mut malicious_email);
-        if matching_blocks <= detect_matching_blocks(&first_encrypted_profile, &second_encrypted_profile) {
-            break;
-        }
-    }
+    let (matching_blocks, _, mut first_encrypted_profile) =
+        decryptor::find_matching_blocks(
+            &mut |plaintext| {
+                let mut malicious_email =
+                    String::from_utf8(plaintext.to_vec()).expect("not a utf8 string");
+                Ok(cookie.encrypted_profile_for(&mut malicious_email))
+            },
+            &malicious_block,
+            cookie.block_size(),
+        ).expect("Could not find matching blocks");
+    let mut second_encrypted_profile;
 
     let mut admin_block = first_encrypted_profile.split_off(matching_blocks * cookie.block_size());
     admin_block.truncate(cookie.block_size());
+    // At this point we have the admin block we're going to append to our malicious profile
 
+    // Now we need to discover how long our email needs to be to slice of the `user------------` portion
     let mut username = String::from("fo");
     let create_email = |username: &str| format!("{}@bar.com", username);
 
@@ -193,4 +185,15 @@ pub fn craft_encrypted_admin_profile(cookie: &cookie::Cookie) -> Vec<u8> {
     first_encrypted_profile.truncate(message_len);
     first_encrypted_profile.append(&mut admin_block);
     first_encrypted_profile
+}
+
+// Challenge 14
+pub fn decrypt_append_str_with_random_prepend(append_str: &str) -> Result<String, MatasanoError> {
+    let mut oracle = Oracle::new_with_base64_append_str_and_random_prepend(&append_str)?;
+
+    let decoded_vec = decryptor::break_oracle_append_prepend_fn(&mut |plaintext| {
+        oracle.randomly_append_prepend_and_encrypt_text(plaintext)
+    })?;
+
+    Ok(String::from_utf8(decoded_vec)?)
 }

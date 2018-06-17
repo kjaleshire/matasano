@@ -1,5 +1,5 @@
 use openssl::symm::{encrypt, Cipher, Crypter, Mode};
-use rand::{self, Rng};
+use rand::{self, distributions::Standard, Rng};
 
 pub fn decrypt_ecb_text(ciphertext_bytes: &[u8], key: &[u8]) -> Vec<u8> {
     let cipher = Cipher::aes_128_ecb();
@@ -120,5 +120,5 @@ pub fn padded_len(length: usize, block_size: usize) -> usize {
 }
 
 pub fn generate_random_aes_key(rng: &mut rand::ThreadRng, block_size: usize) -> Vec<u8> {
-    (0..block_size).map(|_| rng.gen()).collect()
+    rng.sample_iter(&Standard).take(block_size).collect()
 }
