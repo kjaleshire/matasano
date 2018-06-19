@@ -4,6 +4,7 @@ use serde_urlencoded;
 use std::collections::HashMap;
 
 use aes;
+use utility::error::{Result, ResultExt};
 
 pub struct Cookie {
     pub key: Vec<u8>,
@@ -35,16 +36,16 @@ impl Cookie {
         16
     }
 
-    pub fn deserialize_cookie(serialized_cookie: &str) -> HashMap<String, String> {
-        serde_urlencoded::from_str(serialized_cookie).expect("could not deserialize cookie")
+    pub fn deserialize_cookie(serialized_cookie: &str) -> Result<HashMap<String, String>> {
+        serde_urlencoded::from_str(serialized_cookie).chain_err(|| "could not deserialize cookie")
     }
 
-    pub fn serialize_cookie(profile: HashMap<&str, &str>) -> String {
-        serde_urlencoded::to_string(profile).expect("could not serialize cookie")
+    pub fn serialize_cookie(profile: HashMap<&str, &str>) -> Result<String> {
+        serde_urlencoded::to_string(profile).chain_err(|| "could not serialize cookie")
     }
 
-    pub fn deserialize_profile(serialized_profile: &str) -> Profile {
-        serde_urlencoded::from_str(serialized_profile).expect("could not deserialize profile")
+    pub fn deserialize_profile(serialized_profile: &str) -> Result<Profile> {
+        serde_urlencoded::from_str(serialized_profile).chain_err(|| "could not deserialize profile")
     }
 
     pub fn profile_for(&self, email: &str) -> String {
@@ -60,26 +61,26 @@ impl Cookie {
             profile.email, profile.uid, profile.role
         )
 
-        // serde_urlencoded::to_string(profile).expect("could not serialize profile")
+        // serde_urlencoded::to_string(profile).chain_err(|| "could not serialize profile")
     }
 
-    pub fn encrypted_profile_for(&self, email: &str) -> Vec<u8> {
+    pub fn encrypted_profile_for(&self, email: &str) -> Result<Vec<u8>> {
         let profile = self.profile_for(email);
         self.encrypt_cookie(&profile)
     }
 
-    pub fn decrypted_profile_for(&self, encrypted_profile: &[u8]) -> Profile {
-        let serialized_profile = self.decrypt_cookie(encrypted_profile);
+    pub fn decrypted_profile_for(&self, encrypted_profile: &[u8]) -> Result<Profile> {
+        let serialized_profile = self.decrypt_cookie(encrypted_profile).chain_err(|| "could not decrypt cookie")?;
         let string_profile =
-            String::from_utf8(serialized_profile).expect("could not stringify profile vec");
-        Self::deserialize_profile(&string_profile.clone())
+            String::from_utf8(serialized_profile).chain_err(|| "could not stringify profile vec");
+        Self::deserialize_profile(&string_profile?.clone())
     }
 
-    pub fn decrypt_cookie(&self, cookie: &[u8]) -> Vec<u8> {
+    pub fn decrypt_cookie(&self, cookie: &[u8]) -> Result<Vec<u8>> {
         aes::decrypt_ecb_text(cookie, &self.key)
     }
 
-    pub fn encrypt_cookie(&self, cookie: &str) -> Vec<u8> {
+    pub fn encrypt_cookie(&self, cookie: &str) -> Result<Vec<u8>> {
         aes::encrypt_ecb_text(cookie.as_bytes(), &self.key)
     }
 }

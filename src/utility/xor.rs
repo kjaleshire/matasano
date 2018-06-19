@@ -1,10 +1,10 @@
 use hex;
 
-use super::error::MatasanoError;
+use super::error::{Result, ResultExt};
 
-pub fn string_xor(hex_string_1: &str, hex_string_2: &str) -> Result<String, MatasanoError> {
-    let byte_vec_1 = hex::decode(hex_string_1)?;
-    let byte_vec_2 = hex::decode(hex_string_2)?;
+pub fn string_xor(hex_string_1: &str, hex_string_2: &str) -> Result<String> {
+    let byte_vec_1 = hex::decode(hex_string_1).chain_err(|| "could not decode hex string")?;
+    let byte_vec_2 = hex::decode(hex_string_2).chain_err(|| "could not decode hex string")?;
 
     let result = byte_slice_xor(&byte_vec_1, &byte_vec_2)?;
 
@@ -13,9 +13,9 @@ pub fn string_xor(hex_string_1: &str, hex_string_2: &str) -> Result<String, Mata
     Ok(new_hex_string)
 }
 
-pub fn byte_slice_xor(byte_vec_1: &[u8], byte_vec_2: &[u8]) -> Result<Vec<u8>, MatasanoError> {
+pub fn byte_slice_xor(byte_vec_1: &[u8], byte_vec_2: &[u8]) -> Result<Vec<u8>> {
     if byte_vec_1.len() != byte_vec_2.len() {
-        return Err(MatasanoError::Other("Hex strings must be of equal length"));
+        bail!("Hex strings must be of equal length");
     }
 
     Ok(byte_vec_1

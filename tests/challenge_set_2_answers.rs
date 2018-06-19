@@ -33,3 +33,15 @@ pub mod challenge_13 {
     pub static SANITIZED_SERIALIZED_COOKIE: &'static str =
         "email=foo@bar.comroleadmin&uid=10&role=user";
 }
+
+pub mod challenge_14 {
+    pub static APPEND_STR: &'static str = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK";
+    pub static EXPECTED_STR: &'static str = "Rollin\' in my 5.0\nWith my rag-top down so my hair can blow\nThe girlies on standby waving just to say hi\nDid you stop? No, I just drove by\n";
+}
+
+pub mod challenge_15 {
+    pub static VALID_PKCS7_PLAINTEXT: &'static str = "ICE ICE BABY\x04\x04\x04\x04";
+    pub static INVALID_PKCS7_PLAINTEXT_1: &'static str = "ICE ICE BABY\x05\x05\x05\x05";
+    pub static INVALID_PKCS7_PLAINTEXT_2: &'static str = "ICE ICE BABY\x01\x02\x03\x04";
+    pub static STRIPPED_PLAINTEXT: &'static str = "ICE ICE BABY";
+}

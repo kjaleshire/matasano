@@ -2,7 +2,7 @@ use hex;
 
 use std::io::BufRead;
 
-use utility::error::MatasanoError;
+use utility::error::{Result, ResultExt};
 
 #[derive(Debug, PartialEq)]
 pub enum Mode {
@@ -11,12 +11,13 @@ pub enum Mode {
     None,
 }
 
-pub fn detect_ecb_line<T>(cipher_lines: T) -> Result<usize, MatasanoError>
+pub fn detect_ecb_line<T>(cipher_lines: T) -> Result<usize>
 where
     T: BufRead,
 {
-    for (line_number, line) in cipher_lines.lines().enumerate() {
-        let line_bytes = hex::decode(line?)?;
+    for (line_number, line_result) in cipher_lines.lines().enumerate() {
+        let line = line_result.chain_err(|| "line was not found")?;
+        let line_bytes = hex::decode(line).chain_err(|| "could not decode hex string")?;
 
         match detect_encryption_mode(&line_bytes, 16) {
             Mode::Ecb => return Ok(line_number + 1),
@@ -24,7 +25,7 @@ where
         }
     }
 
-    Err(MatasanoError::Other("No match found in any lines"))
+    bail!("No match found in any lines")
 }
 
 pub fn detect_encryption_mode(byte_slice: &[u8], block_size: usize) -> Mode {
@@ -43,9 +44,9 @@ pub fn detect_encryption_mode(byte_slice: &[u8], block_size: usize) -> Mode {
 pub fn detect_oracle_block_size<F>(
     oracle_fn: &mut F,
     try_up_to: usize,
-) -> Result<usize, MatasanoError>
+) -> Result<usize>
 where
-    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
+    F: FnMut(&[u8]) -> Result<Vec<u8>>,
 {
     let trial_block = vec![0x65 as u8; try_up_to * 2];
 
@@ -57,5 +58,5 @@ where
         }
     }
 
-    Err(MatasanoError::Other("block size not detected"))
+    bail!("block size not detected")
 }

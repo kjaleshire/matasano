@@ -3,7 +3,7 @@ use rand::{self, distributions::Standard, Rng};
 
 use aes;
 use analyzer::Mode;
-use utility::error::MatasanoError;
+use utility::error::{Result, ResultExt};
 
 pub struct Oracle {
     pub append_vec: Option<Vec<u8>>,
@@ -30,11 +30,11 @@ impl Oracle {
         }
     }
 
-    pub fn new_with_base64_append_str(append_str: &str) -> Result<Self, MatasanoError> {
+    pub fn new_with_base64_append_str(append_str: &str) -> Result<Self> {
         let block_size = 16;
         let mut rng = rand::thread_rng();
         let key = aes::generate_random_aes_key(&mut rng, block_size);
-        let append_vec = base64::decode(append_str)?;
+        let append_vec = base64::decode(append_str).chain_err(|| "could not decode base64 string")?;
 
         Ok(Oracle {
             append_vec: Some(append_vec),
@@ -48,7 +48,7 @@ impl Oracle {
 
     pub fn new_with_base64_append_str_and_random_prepend(
         append_str: &str,
-    ) -> Result<Self, MatasanoError> {
+    ) -> Result<Self> {
         let mut oracle = Self::new_with_base64_append_str(append_str)?;
         let length = oracle.rng.gen_range(0, 64);
         oracle.random_prepend = Some(oracle.rng.sample_iter(&Standard).take(length).collect());
@@ -59,7 +59,7 @@ impl Oracle {
         aes::generate_random_aes_key(&mut self.rng, self.block_size)
     }
 
-    pub fn randomly_mangled_encrypted_text(&mut self) -> Vec<u8> {
+    pub fn randomly_mangled_encrypted_text(&mut self) -> Result<Vec<u8>> {
         let text_size = 3 * self.block_size;
         let random_byte: u8 = self.rng.gen();
         let prefix_size = self.rng.gen_range(5, 11);
@@ -96,18 +96,13 @@ impl Oracle {
     pub fn randomly_append_prepend_and_encrypt_text<'a>(
         &mut self,
         plain_text: &'a [u8],
-    ) -> Result<Vec<u8>, MatasanoError> {
+    ) -> Result<Vec<u8>> {
         let mut mangled_text: Vec<u8>;
 
         {
             let append_vec = match self.append_vec {
                 Some(ref vec) => vec,
-                None => {
-                    return Err(MatasanoError::Other(
-                        "Must set the append vec before using this \
-                         method",
-                    ))
-                }
+                None => bail!("Must set the append vec before using this method"),
             };
 
             let vec_size = aes::padded_len(plain_text.len() + append_vec.len(), self.block_size);
@@ -128,6 +123,6 @@ impl Oracle {
 
         self.last_mode = Mode::Ecb;
 
-        Ok(aes::encrypt_ecb_text(&mangled_text, &self.key))
+        aes::encrypt_ecb_text(&mangled_text, &self.key)
     }
 }

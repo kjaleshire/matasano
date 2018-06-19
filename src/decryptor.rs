@@ -5,7 +5,7 @@ use std::str;
 
 use analyzer;
 use utility::english;
-use utility::error::MatasanoError;
+use utility::error::{Result, ResultExt};
 use utility::hamming;
 
 pub struct ByteKeyState {
@@ -63,7 +63,7 @@ pub fn break_single_byte_key(cipher_bytes: &[u8]) -> ByteKeyState {
     })
 }
 
-pub fn break_lines_key<T>(cipher_lines: T) -> Result<ByteKeyState, MatasanoError>
+pub fn break_lines_key<T>(cipher_lines: T) -> Result<ByteKeyState>
 where
     T: BufRead,
 {
@@ -76,9 +76,10 @@ where
 
     cipher_lines.lines().enumerate().fold(
         Ok(initial_state),
-        |state, (next_line_number, next_line)| {
-            let current_state = state?;
-            let line = hex::decode(next_line?)?;
+        |state, (next_line_number, next_line_result)| {
+            let next_line = next_line_result.chain_err(|| "could not unwrap next line")?;
+            let current_state = state.chain_err(|| "could not get current state")?;
+            let line = hex::decode(next_line).chain_err(|| "could not decode hex string")?;
             let mut trial_state = break_single_byte_key(&line);
 
             match trial_state.score > current_state.score {
@@ -141,9 +142,9 @@ pub fn break_repeating_key_xor(cipher_bytes: &[u8]) -> Vec<u8> {
         .collect()
 }
 
-pub fn break_oracle_append_fn<F>(mut oracle_fn: &mut F) -> Result<Vec<u8>, MatasanoError>
+pub fn break_oracle_append_fn<F>(mut oracle_fn: &mut F) -> Result<Vec<u8>>
 where
-    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
+    F: FnMut(&[u8]) -> Result<Vec<u8>>,
 {
     let block_size = analyzer::detect_oracle_block_size(&mut oracle_fn, 32)?;
 
@@ -193,9 +194,9 @@ fn find_matching_byte_from_encrypted_block<F>(
     oracle_fn: &mut F,
     prefix_block: &[u8],
     current_encrypted_block: &[u8],
-) -> Result<Option<u8>, MatasanoError>
+) -> Result<Option<u8>>
 where
-    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
+    F: FnMut(&[u8]) -> Result<Vec<u8>>,
 {
     let mut trial_vec = Vec::with_capacity(prefix_block.len() + 1);
 
@@ -218,12 +219,12 @@ where
         }
     }
 
-    Err(MatasanoError::Other("No match found for block"))
+    bail!("No match found for block")
 }
 
-pub fn break_oracle_append_prepend_fn<F>(oracle_fn: &mut F) -> Result<Vec<u8>, MatasanoError>
+pub fn break_oracle_append_prepend_fn<F>(oracle_fn: &mut F) -> Result<Vec<u8>>
 where
-    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
+    F: FnMut(&[u8]) -> Result<Vec<u8>>,
 {
     let block_size = 16;
     let plaintext = Vec::new();
@@ -250,9 +251,9 @@ pub fn find_matching_blocks<F>(
     oracle_fn: &mut F,
     initial_plaintext: &Vec<u8>,
     block_size: usize,
-) -> Result<(usize, Vec<u8>, Vec<u8>), MatasanoError>
+) -> Result<(usize, Vec<u8>, Vec<u8>)>
 where
-    F: FnMut(&[u8]) -> Result<Vec<u8>, MatasanoError>,
+    F: FnMut(&[u8]) -> Result<Vec<u8>>,
 {
     let mut plaintext = initial_plaintext.clone();
     let mut first_ciphertext = oracle_fn(&plaintext)?;

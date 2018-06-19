@@ -1,86 +1,93 @@
 use openssl::symm::{encrypt, Cipher, Crypter, Mode};
 use rand::{self, distributions::Standard, Rng};
 
-pub fn decrypt_ecb_text(ciphertext_bytes: &[u8], key: &[u8]) -> Vec<u8> {
-    let cipher = Cipher::aes_128_ecb();
+use utility::error::{Result, ResultExt};
 
-    ciphertext_bytes
-        .chunks(cipher.block_size())
-        .flat_map(|ciphertext_block| {
+pub fn decrypt_ecb_text(ciphertext_bytes: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+    let cipher = Cipher::aes_128_ecb();
+    let mut plaintext = Vec::with_capacity(ciphertext_bytes.len());
+
+    for ciphertext_block in ciphertext_bytes
+        .chunks(cipher.block_size()) {
+            let mut write_buffer = vec![0; cipher.block_size() + ciphertext_block.len()];
             let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, None)
-                .expect("Could not initializer crypter");
+                .chain_err(|| "Could not initializer crypter")?;
             crypter.pad(false);
-            let mut write_buffer = vec![0; ciphertext_block.len() + cipher.block_size()];
             let count = crypter
                 .update(ciphertext_block, &mut write_buffer)
-                .expect("Could not update plaintext buffer");
+                .chain_err(|| "Could not update plaintext buffer")?;
             let rest = crypter
                 .finalize(&mut write_buffer[count..])
-                .expect("Could not finalize decryption");
+                .chain_err(|| "Could not finalize decryption")?;
             write_buffer.truncate(count + rest);
 
-            write_buffer.clone()
-        })
-        .collect()
+            plaintext.extend_from_slice(&write_buffer);
+        }
+
+    Ok(plaintext)
 }
 
-pub fn encrypt_ecb_text(plaintext_bytes: &[u8], key: &[u8]) -> Vec<u8> {
+pub fn encrypt_ecb_text(plaintext_bytes: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     let cipher = Cipher::aes_128_ecb();
+    let mut ciphertext = Vec::with_capacity(plaintext_bytes.len());
 
-    plaintext_bytes
-        .chunks(cipher.block_size())
-        .flat_map(|plaintext_block| {
+    for plaintext_block in plaintext_bytes
+        .chunks(cipher.block_size()) {
             let mut write_buffer = encrypt(cipher, key, None, plaintext_block)
-                .expect("Could not enrypt ecb plaintext");
+                .chain_err(|| "Could not enrypt ecb plaintext")?;
             write_buffer.truncate(cipher.block_size());
 
-            write_buffer.clone()
-        })
-        .collect()
+            ciphertext.extend_from_slice(&write_buffer);
+        }
+
+    Ok(ciphertext)
 }
 
-pub fn decrypt_cbc_text(ciphertext_bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+pub fn decrypt_cbc_text(ciphertext_bytes: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
     let cipher = Cipher::aes_128_ecb();
 
     let mut next_iv = iv;
+    let mut plaintext = Vec::with_capacity(ciphertext_bytes.len());
 
-    ciphertext_bytes
-        .chunks(cipher.block_size())
-        .flat_map(|ciphertext_block| {
+    for ciphertext_block in ciphertext_bytes
+        .chunks(cipher.block_size()) {
+            let mut write_buffer = vec![0; cipher.block_size() + ciphertext_block.len()];
             let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, None)
-                .expect("Could not initializer crypter");
+                .chain_err(|| "Could not initializer crypter")?;
             crypter.pad(false);
-            let mut write_buffer = vec![0; ciphertext_block.len() + cipher.block_size()];
             let count = crypter
                 .update(ciphertext_block, &mut write_buffer)
-                .expect("Could not update plaintext buffer");
+                .chain_err(|| "Could not update plaintext buffer")?;
             let rest = crypter
                 .finalize(&mut write_buffer[count..])
-                .expect("Could not finalize decryption");
+                .chain_err(|| "Could not finalize decryption")?;
             write_buffer.truncate(count + rest);
 
             let current_iv = next_iv;
             next_iv = &ciphertext_block;
 
-            write_buffer
+            let mut xord_plaintext = write_buffer
                 .iter()
                 .zip(current_iv.iter())
                 .map(|(decoded_byte, iv_byte)| decoded_byte ^ iv_byte)
-                .collect::<Vec<u8>>()
-        })
-        .collect()
+                .collect();
+
+            plaintext.append(&mut xord_plaintext);
+        }
+
+    Ok(plaintext)
 }
 
-pub fn encrypt_cbc_text(plaintext_bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+pub fn encrypt_cbc_text(plaintext_bytes: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
     let cipher = Cipher::aes_128_ecb();
 
     let mut write_buffer = vec![0; cipher.block_size()];
+    let mut ciphertext = Vec::with_capacity(plaintext_bytes.len());
 
     write_buffer.copy_from_slice(iv);
 
-    plaintext_bytes
-        .chunks(cipher.block_size())
-        .flat_map(|plaintext_block| {
+    for plaintext_block in plaintext_bytes
+        .chunks(cipher.block_size()) {
             let text_iv_block: Vec<u8> = plaintext_block
                 .iter()
                 .zip(&write_buffer)
@@ -88,28 +95,43 @@ pub fn encrypt_cbc_text(plaintext_bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8
                 .collect();
 
             write_buffer = encrypt(cipher, key, None, &text_iv_block)
-                .expect("Could not encrypt cbc plaintext");
+                .chain_err(|| "Could not encrypt cbc plaintext")?;
             write_buffer.truncate(cipher.block_size());
 
-            write_buffer.clone()
-        })
-        .collect()
+            ciphertext.extend_from_slice(&write_buffer);
+        }
+
+    Ok(ciphertext)
 }
 
-pub fn pkcs7_pad_vec(byte_vec: &mut Vec<u8>, block_size: usize) -> usize {
+pub fn pkcs7_pad_vec(byte_vec: &mut Vec<u8>, block_size: usize) -> Result<usize> {
     let padded_len = padded_len(byte_vec.len(), block_size);
     let padding_size = padded_len - byte_vec.len();
 
-    assert!(
-        padding_size < block_size,
-        "padding size must be less than block size"
-    );
+    if padding_size >= block_size {
+        bail!("padding size must be less than block size")
+    }
 
     for _ in 0..padding_size {
         byte_vec.push(padding_size as u8);
     }
 
-    padding_size
+    Ok(padding_size)
+}
+
+pub fn strip_pkcs7_padding(plaintext: &str) -> Result<String> {
+        match plaintext.chars().last() {
+        Some(last_char) => {
+            for test_char in plaintext.chars().rev().take(last_char as usize) {
+                if test_char != last_char {
+                    bail!("Invalid padding detected")
+                }
+            }
+
+            Ok(String::from(&plaintext[..plaintext.len() - last_char as usize]))
+        },
+        None => bail!("The plaintext is empty")
+    }
 }
 
 pub fn padded_len(length: usize, block_size: usize) -> usize {
