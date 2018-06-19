@@ -4,11 +4,11 @@ use std::{collections::HashMap, str};
 
 use aes;
 use analyzer;
-use utility::error::{Result, ResultExt};
-use utility::file;
 use cookie;
 use decryptor;
 use oracle::Oracle;
+use utility::error::{Result, ResultExt};
+use utility::file;
 
 // Challenge 9
 pub fn pkcs_pad_string(str_slice: &str, block_size: usize) -> Result<String> {
@@ -32,10 +32,12 @@ pub fn decrypt_encrypted_aes_cbc_file(
         true,
         base64::LineWrap::NoWrap,
     );
-    let cipher_bytes = base64::decode_config(&rawfile_bytes, base64_config).chain_err(|| "could not decode base64 string")?;
+    let cipher_bytes = base64::decode_config(&rawfile_bytes, base64_config)
+        .chain_err(|| "could not decode base64 string")?;
 
     let decoded_vec = aes::decrypt_cbc_text(&cipher_bytes, key.as_bytes(), iv)?;
-    let new_string = String::from_utf8(decoded_vec).chain_err(|| "could not convert vec to utf8 string")?;
+    let new_string =
+        String::from_utf8(decoded_vec).chain_err(|| "could not convert vec to utf8 string")?;
 
     Ok((new_string, cipher_bytes))
 }
@@ -51,10 +53,7 @@ pub fn oracle_generate_key_pair() -> (Vec<u8>, Vec<u8>) {
     (oracle.set_random_aes_key(), oracle.set_random_aes_key())
 }
 
-pub fn decrypt_encrypt_aes_ecb_file(
-    file_path: &str,
-    key: &str,
-) -> Result<(String, Vec<u8>)> {
+pub fn decrypt_encrypt_aes_ecb_file(file_path: &str, key: &str) -> Result<(String, Vec<u8>)> {
     let rawfile_bytes = file::dump_bytes(file_path)?;
     let base64_config = base64::Config::new(
         base64::CharacterSet::Standard,
@@ -62,11 +61,13 @@ pub fn decrypt_encrypt_aes_ecb_file(
         true,
         base64::LineWrap::NoWrap,
     );
-    let cipher_bytes = base64::decode_config(&rawfile_bytes, base64_config).chain_err(|| "could not decode base64 string")?;
+    let cipher_bytes = base64::decode_config(&rawfile_bytes, base64_config)
+        .chain_err(|| "could not decode base64 string")?;
 
     let decoded_vec = aes::decrypt_ecb_text(&cipher_bytes, key.as_bytes())?;
 
-    let new_string = String::from_utf8(decoded_vec).chain_err(|| "could not convert vec to utf8 string")?;
+    let new_string =
+        String::from_utf8(decoded_vec).chain_err(|| "could not convert vec to utf8 string")?;
 
     Ok((new_string, cipher_bytes))
 }
@@ -85,10 +86,7 @@ pub fn oracle_encrypt_and_guess() -> Result<(analyzer::Mode, analyzer::Mode)> {
 }
 
 // Challenge 12
-pub fn detect_oracle_block_size(
-    append_str: &str,
-    try_up_to: usize,
-) -> Result<usize> {
+pub fn detect_oracle_block_size(append_str: &str, try_up_to: usize) -> Result<usize> {
     let mut oracle = Oracle::new_with_base64_append_str(&append_str)?;
 
     analyzer::detect_oracle_block_size(
@@ -97,14 +95,14 @@ pub fn detect_oracle_block_size(
     )
 }
 
-pub fn detect_oracle_mode(
-    append_str: &str,
-) -> Result<(analyzer::Mode, analyzer::Mode)> {
+pub fn detect_oracle_mode(append_str: &str) -> Result<(analyzer::Mode, analyzer::Mode)> {
     let mut oracle = Oracle::new_with_base64_append_str(&append_str)?;
 
     let trial_block = vec![0x65 as u8; 128];
 
-    let encoded_vec = oracle.randomly_append_prepend_and_encrypt_text(&trial_block).chain_err(|| "could not encrypt text")?;
+    let encoded_vec = oracle
+        .randomly_append_prepend_and_encrypt_text(&trial_block)
+        .chain_err(|| "could not encrypt text")?;
 
     Ok((
         analyzer::detect_encryption_mode(&encoded_vec, 16),
@@ -119,7 +117,8 @@ pub fn decrypt_append_str(append_str: &str) -> Result<String> {
         oracle.randomly_append_prepend_and_encrypt_text(block)
     })?;
 
-    let new_string = String::from_utf8(decoded_vec).chain_err(|| "could not convert vec to utf8 string")?;
+    let new_string =
+        String::from_utf8(decoded_vec).chain_err(|| "could not convert vec to utf8 string")?;
 
     Ok(new_string)
 }
@@ -199,8 +198,8 @@ pub fn decrypt_append_str_with_random_prepend(append_str: &str) -> Result<String
         oracle.randomly_append_prepend_and_encrypt_text(plaintext)
     })?;
 
-
-    let new_string = String::from_utf8(decoded_vec).chain_err(|| "could not convert vec to utf8 string")?;
+    let new_string =
+        String::from_utf8(decoded_vec).chain_err(|| "could not convert vec to utf8 string")?;
 
     Ok(new_string)
 }

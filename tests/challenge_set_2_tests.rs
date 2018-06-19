@@ -27,7 +27,8 @@ fn challenge_10_test() {
         DECODED_FIRST_LINE[..]
     );
 
-    let encrypted_vec = set_2::encrypt_aes_cbc_text(&plaintext_string, KEY, &IV).expect("could not encrypt text");
+    let encrypted_vec =
+        set_2::encrypt_aes_cbc_text(&plaintext_string, KEY, &IV).expect("could not encrypt text");
 
     assert_eq!(encrypted_vec, ciphertext_bytes);
 }
@@ -53,7 +54,8 @@ fn encrypt_aes_ecb_text_test() {
         DECODED_FIRST_LINE
     );
 
-    let encrypted_text = set_2::encrypt_aes_ecb_text(&decrypted_text, KEY).expect("could not encrypt text");
+    let encrypted_text =
+        set_2::encrypt_aes_ecb_text(&decrypted_text, KEY).expect("could not encrypt text");
 
     assert_eq!(encrypted_text, ciphertext_bytes);
 }
@@ -61,7 +63,8 @@ fn encrypt_aes_ecb_text_test() {
 #[test]
 fn challenge_11_test() {
     for _ in 0..21 {
-        let (detected_mode, last_mode) = set_2::oracle_encrypt_and_guess().expect("could not guess mode");
+        let (detected_mode, last_mode) =
+            set_2::oracle_encrypt_and_guess().expect("could not guess mode");
 
         assert_eq!(detected_mode, last_mode);
     }
@@ -101,7 +104,8 @@ fn challenge_12_test() {
 fn deserialize_cookie() {
     use challenge_set_2_answers::challenge_13::{DESERIALIZED_COOKIE, SERIALIZED_COOKIE};
 
-    let mut hashmap = set_2::deserialize_cookie(SERIALIZED_COOKIE).expect("could not deserialize cookie");
+    let mut hashmap =
+        set_2::deserialize_cookie(SERIALIZED_COOKIE).expect("could not deserialize cookie");
 
     for (key, value) in DESERIALIZED_COOKIE.iter() {
         assert_eq!(Some(String::from(*value)), hashmap.remove(*key));
@@ -114,7 +118,8 @@ fn deserialize_cookie() {
 fn deserialize_profile() {
     use challenge_set_2_answers::challenge_13::{PROPER_EMAIL, SERIALIZED_PROFILE};
 
-    let object = set_2::deserialize_cookie(SERIALIZED_PROFILE).expect("could not deserialize cookie");
+    let object =
+        set_2::deserialize_cookie(SERIALIZED_PROFILE).expect("could not deserialize cookie");
     let email = object
         .get("email")
         .expect("Challenge 13: email not set in hash");
@@ -146,8 +151,10 @@ fn encrypt_decrypt_profile() {
 
     let cookie = set_2::create_cookie();
 
-    let encrypted_profile = set_2::encrypted_profile_for(&cookie, PROPER_EMAIL).expect("could not encrypt profile");
-    let profile = set_2::decrypted_profile_from(&cookie, &encrypted_profile).expect("could not decrypt profile");
+    let encrypted_profile =
+        set_2::encrypted_profile_for(&cookie, PROPER_EMAIL).expect("could not encrypt profile");
+    let profile = set_2::decrypted_profile_from(&cookie, &encrypted_profile)
+        .expect("could not decrypt profile");
 
     assert_eq!(PROPER_EMAIL, profile.email);
     assert_eq!(10, profile.uid);
@@ -158,9 +165,11 @@ fn encrypt_decrypt_profile() {
 fn challenge_13_test() {
     let cookie = set_2::create_cookie();
 
-    let malicious_encrypted_profile = set_2::craft_encrypted_admin_profile(&cookie).expect("could not craft admin profile");
+    let malicious_encrypted_profile =
+        set_2::craft_encrypted_admin_profile(&cookie).expect("could not craft admin profile");
 
-    let profile = set_2::decrypted_profile_from(&cookie, &malicious_encrypted_profile).expect("could not decrypt profile");
+    let profile = set_2::decrypted_profile_from(&cookie, &malicious_encrypted_profile)
+        .expect("could not decrypt profile");
 
     assert_eq!("admin", &profile.role[0..5]);
 }
@@ -177,7 +186,7 @@ fn challenge_14_test() {
 
 #[test]
 fn check_invalid_pkcs7_1() {
-    use challenge_set_2_answers::challenge_15::{INVALID_PKCS7_PLAINTEXT_1};
+    use challenge_set_2_answers::challenge_15::INVALID_PKCS7_PLAINTEXT_1;
 
     if let Err(result) = set_2::strip_pkcs7_padding(INVALID_PKCS7_PLAINTEXT_1) {
         assert_eq!("Invalid padding detected", result.description());
@@ -188,7 +197,7 @@ fn check_invalid_pkcs7_1() {
 
 #[test]
 fn check_invalid_pkcs7_2() {
-    use challenge_set_2_answers::challenge_15::{INVALID_PKCS7_PLAINTEXT_2};
+    use challenge_set_2_answers::challenge_15::INVALID_PKCS7_PLAINTEXT_2;
 
     if let Err(result) = set_2::strip_pkcs7_padding(INVALID_PKCS7_PLAINTEXT_2) {
         assert_eq!("Invalid padding detected", result.description());
@@ -201,7 +210,8 @@ fn check_invalid_pkcs7_2() {
 fn challenge_15_test() {
     use challenge_set_2_answers::challenge_15::{VALID_PKCS7_PLAINTEXT, STRIPPED_PLAINTEXT};
 
-    let result = set_2::strip_pkcs7_padding(VALID_PKCS7_PLAINTEXT).expect("could not strip padding");
+    let result =
+        set_2::strip_pkcs7_padding(VALID_PKCS7_PLAINTEXT).expect("could not strip padding");
 
     assert_eq!(STRIPPED_PLAINTEXT, result);
 }

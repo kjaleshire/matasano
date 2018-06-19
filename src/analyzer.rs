@@ -41,10 +41,7 @@ pub fn detect_encryption_mode(byte_slice: &[u8], block_size: usize) -> Mode {
     Mode::Cbc
 }
 
-pub fn detect_oracle_block_size<F>(
-    oracle_fn: &mut F,
-    try_up_to: usize,
-) -> Result<usize>
+pub fn detect_oracle_block_size<F>(oracle_fn: &mut F, try_up_to: usize) -> Result<usize>
 where
     F: FnMut(&[u8]) -> Result<Vec<u8>>,
 {

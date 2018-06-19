@@ -46,9 +46,7 @@ impl Oracle {
         })
     }
 
-    pub fn new_with_base64_append_str_and_random_prepend(
-        append_str: &str,
-    ) -> Result<Self> {
+    pub fn new_with_base64_append_str_and_random_prepend(append_str: &str) -> Result<Self> {
         let mut oracle = Self::new_with_base64_append_str(append_str)?;
         let length = oracle.rng.gen_range(0, 64);
         oracle.random_prepend = Some(oracle.rng.sample_iter(&Standard).take(length).collect());

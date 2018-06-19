@@ -34,9 +34,7 @@ pub fn break_single_byte_key_from_hex_string(
 }
 
 // Challenge 4
-pub fn break_multiline_file_byte_key(
-    file_path: &str,
-) -> Result<decryptor::ByteKeyState> {
+pub fn break_multiline_file_byte_key(file_path: &str) -> Result<decryptor::ByteKeyState> {
     let lines = file::buffered_file_reader(file_path)?;
 
     decryptor::break_lines_key(lines)
@@ -62,7 +60,8 @@ pub fn break_xor_file_repeating_key(file_path: &str) -> Result<Vec<u8>> {
         true,
         base64::LineWrap::NoWrap,
     );
-    let cipher_bytes = base64::decode_config(&file_bytes, base64_config).chain_err(|| "could not decode base64 string")?;
+    let cipher_bytes = base64::decode_config(&file_bytes, base64_config)
+        .chain_err(|| "could not decode base64 string")?;
 
     Ok(decryptor::break_repeating_key_xor(&cipher_bytes))
 }
@@ -76,10 +75,12 @@ pub fn decrypt_aes_ecb_file(file_path: &str, key: &str) -> Result<String> {
         true,
         base64::LineWrap::NoWrap,
     );
-    let cipher_bytes = base64::decode_config(&file_bytes, base64_config).chain_err(|| "could not decode base64 string")?;
+    let cipher_bytes = base64::decode_config(&file_bytes, base64_config)
+        .chain_err(|| "could not decode base64 string")?;
     let plaintext = aes::decrypt_ecb_text(&cipher_bytes, key.as_bytes())?;
 
-    let new_string = String::from_utf8(plaintext).chain_err(|| "could not convert to UTF-8 string")?;
+    let new_string =
+        String::from_utf8(plaintext).chain_err(|| "could not convert to UTF-8 string")?;
     Ok(new_string)
 }
 

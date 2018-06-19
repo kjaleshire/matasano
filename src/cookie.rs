@@ -70,7 +70,9 @@ impl Cookie {
     }
 
     pub fn decrypted_profile_for(&self, encrypted_profile: &[u8]) -> Result<Profile> {
-        let serialized_profile = self.decrypt_cookie(encrypted_profile).chain_err(|| "could not decrypt cookie")?;
+        let serialized_profile = self
+            .decrypt_cookie(encrypted_profile)
+            .chain_err(|| "could not decrypt cookie")?;
         let string_profile =
             String::from_utf8(serialized_profile).chain_err(|| "could not stringify profile vec");
         Self::deserialize_profile(&string_profile?.clone())
