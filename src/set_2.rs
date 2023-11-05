@@ -1,4 +1,4 @@
-use serialize::base64::{Config, FromBase64, Newline, Standard, ToBase64};
+use serialize::base64::FromBase64;
 
 use std::collections::HashMap;
 use std::str;
@@ -19,7 +19,7 @@ pub fn pkcs_pad_string(str_slice: &str, block_size: usize) -> String {
         aes::pkcs7_pad_vec(string.as_mut_vec(), block_size);
     }
 
-    string
+        string
 }
 
 // Challenge 10
@@ -93,9 +93,8 @@ pub fn decrypt_append_str<'a>(append_str: &'a str) -> Result<String, MatasanoErr
     let mut oracle = Oracle::new_with_base64_append_str(&append_str)?;
 
     let decoded_vec = decryptor::break_oracle_append_fn(&mut |block| {
-            oracle.randomly_append_and_encrypt_text(block)
-        })
-        ?;
+        oracle.randomly_append_and_encrypt_text(block)
+    })?;
 
     Ok(String::from_utf8(decoded_vec)?)
 }
@@ -127,3 +126,4 @@ pub fn serialized_profile_for<'a>(email: &'a str) -> String {
 //         Ok(cookie::profile_for(&email))
 //     })
 // }
+

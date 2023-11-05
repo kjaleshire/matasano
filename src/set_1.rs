@@ -39,16 +39,14 @@ pub fn string_xor(hex_string_1: &str, hex_string_2: &str) -> Result<String, Mata
 }
 
 // Challenge 3
-pub fn break_single_byte_key_from_hex_string(cipher_string: &str)
-                                             -> Result<decryptor::ByteKeyState, MatasanoError> {
+pub fn break_single_byte_key_from_hex_string(cipher_string: &str) -> Result<decryptor::ByteKeyState, MatasanoError> {
     let cipher_bytes = cipher_string.from_hex()?;
 
     Ok(decryptor::break_single_byte_key(&cipher_bytes))
 }
 
 // Challenge 4
-pub fn break_multiline_file_byte_key(file_path: &str)
-                                     -> Result<decryptor::ByteKeyState, MatasanoError> {
+pub fn break_multiline_file_byte_key(file_path: &str) -> Result<decryptor::ByteKeyState, MatasanoError> {
     let lines = file::buffered_file_reader(file_path)?;
 
     decryptor::break_lines_key(lines)

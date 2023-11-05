@@ -35,12 +35,12 @@ impl Oracle {
         let key = Self::generate_random_aes_key(&mut rng, 16);
 
         Ok(Oracle {
-            append_vec: Some(append_str.from_base64()?),
-            block_size: 16,
-            key: key,
-            last_mode: Mode::None,
-            rng: rng,
-        })
+               append_vec: Some(append_str.from_base64()?),
+               block_size: 16,
+               key: key,
+               last_mode: Mode::None,
+               rng: rng,
+           })
     }
 
     fn generate_random_aes_key(rng: &mut rand::ThreadRng, block_size: usize) -> Vec<u8> {
@@ -85,9 +85,7 @@ impl Oracle {
         }
     }
 
-    pub fn randomly_append_and_encrypt_text<'a>(&mut self,
-                                                plain_text: &'a [u8])
-                                                -> Result<Vec<u8>, MatasanoError> {
+    pub fn randomly_append_and_encrypt_text<'a>(&mut self, plain_text: &'a [u8]) -> Result<Vec<u8>, MatasanoError> {
         let mut mangled_text: Vec<u8>;
 
         {

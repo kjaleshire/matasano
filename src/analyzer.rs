@@ -52,3 +52,4 @@ pub fn detect_oracle_block_size<F>(oracle_fn: &mut F,
 
     Err(MatasanoError::Other("block size not detected"))
 }
+
